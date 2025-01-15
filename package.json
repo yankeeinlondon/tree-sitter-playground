@@ -1,0 +1,94 @@
+{
+    "name": "tree-sitter-viewer",
+    "displayName": "tree-sitter-viewer",
+    "description": "",
+    "version": "1.0.0",
+    "license": "MIT",
+    "publisher": "xiaonatuo",
+    "author": {
+        "name": "xiaonatuo",
+        "email": "g371864209@gmail.com",
+        "url": "https://github.com/xiaonatuo"
+    },
+    "homepage": "https://github.com/xiaonatuo/tree-sitter-viewer",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/xiaonatuo/tree-sitter-viewer"
+    },
+    "engines": {
+        "vscode": "^1.86.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [],
+    "main": "./dist/extension.js",
+    "enabledApiProposals": [
+        "contribEditorContentMenu"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "tree-sitter-viewer.view-syntax-tree",
+                "title": "View Syntax Tree",
+                "icon": "$(symbol-class)"
+            }
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "tree-sitter-viewer.view-syntax-tree",
+                    "group": "navigation"
+                }
+            ]
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "tree-sitter-viewer-container",
+                    "title": "Tree Sitter Viewer",
+                    "icon": "resources/tree-sitter-viewer.svg"
+                }
+            ]
+        },
+        "views": {
+            "tree-sitter-viewer-container": [
+                {
+                    "id": "tree-sitter-setting",
+                    "name": "Setting Tree Sitter"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "postinstall": "npm run copy:treesitter",
+        "vscode:prepublish": "npm run package",
+        "compile": "webpack",
+        "watch": "webpack --watch",
+        "package": "webpack --mode production --devtool hidden-source-map",
+        "compile-tests": "tsc -p . --outDir out",
+        "watch-tests": "tsc -p . -w --outDir out",
+        "pretest": "npm run compile-tests && npm run compile && npm run lint",
+        "lint": "eslint src",
+        "test": "vscode-test",
+        "copy:treesitter": "cpx node_modules/web-tree-sitter/tree-sitter.wasm dist"
+    },
+    "devDependencies": {
+        "@types/mocha": "^10.0.10",
+        "@types/node": "20.x",
+        "@types/vscode": "^1.86.0",
+        "@typescript-eslint/eslint-plugin": "^8.17.0",
+        "@typescript-eslint/parser": "^8.17.0",
+        "@vscode/test-cli": "^0.0.10",
+        "@vscode/test-electron": "^2.4.1",
+        "cpx": "^1.5.0",
+        "eslint": "^9.16.0",
+        "ts-loader": "^9.5.1",
+        "typescript": "^5.7.2",
+        "webpack": "^5.95.0",
+        "webpack-cli": "^5.1.4"
+    },
+    "dependencies": {
+        "web-tree-sitter": "^0.24.7"
+    }
+}
