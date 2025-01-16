@@ -42,12 +42,23 @@
                 }
             ]
         },
+        "customEditors": [
+            {
+                "viewType": "tree-sitter-viewer.ast-editor",
+                "displayName": "Ast Editor",
+                "selector": [
+                    {
+                        "filenamePattern": "*"
+                    }
+                ]
+            }
+        ],
         "viewsContainers": {
             "activitybar": [
                 {
                     "id": "tree-sitter-viewer-container",
                     "title": "Tree Sitter Viewer",
-                    "icon": "resources/tree-sitter-viewer.svg"
+                    "icon": "resources/icons/tree-sitter-viewer.svg"
                 }
             ]
         },

@@ -47,7 +47,8 @@ export async function getParser(language: string) {
 async function initTSParser(language: string) {
     await Parser.init();
     const parser = new Parser();
-    const languageWasm = await Parser.Language.load(path.resolve(WASM_DIR, `tree-sitter-${language}.wasm`));
+    const wasmPath = path.resolve(WASM_DIR, `tree-sitter-${language}.wasm`);
+    const languageWasm = await Parser.Language.load(wasmPath);
     parser.setLanguage(languageWasm);
     TS_PARSER.set(language, parser);
     return parser;
