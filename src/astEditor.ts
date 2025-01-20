@@ -48,23 +48,26 @@ export class AstEditorProvider implements vscode.CustomTextEditorProvider {
         });
         // this.updateTextDocument(doc);
     }
-    	/**
-	 * 将JSON写入给定文档
-	 */
-	private updateTextDocument(document: vscode.TextDocument) {
-		const edit = new vscode.WorkspaceEdit();
+    /**
+     * 将JSON写入给定文档
+     */
+    private updateTextDocument(document: vscode.TextDocument) {
+        const edit = new vscode.WorkspaceEdit();
 
-		// 每次替换整个文档
-		edit.replace(
-			document.uri,
-			new vscode.Range(0, 0, document.lineCount, 0),
-			document.getText()
-		);
+        // 每次替换整个文档
+        edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), document.getText());
 
-		return vscode.workspace.applyEdit(edit);
-	}
+        return vscode.workspace.applyEdit(edit);
+    }
 
     private getHtml(webview: vscode.Webview) {
+        
+		const styleVSCodeUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.context.extensionUri, "resources", "css",  'vscode.css')
+		);
+		const astEditorUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.context.extensionUri, "resources", "css",  'astEditor.css')
+		);
         const scriptUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this.context.extensionUri, "resources", "js", "astEditor.js")
         );
@@ -73,24 +76,103 @@ export class AstEditorProvider implements vscode.CustomTextEditorProvider {
         return /* html */ `
         <!DOCTYPE html>
         <html lang="en">
-        <head>
-            <meta charset="UTF-8">
+            <head>
+                <meta charset="UTF-8" />
 
-            <!-- 使用内容安全策略限制资源加载 -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';"> 
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Syntax Tree</title>
-        </head>
-        <body>
-            <div class="notes">
-                <div class="add-button">
-                    <button>Scratch!</button>
+                <!-- 使用内容安全策略限制资源加载 -->
+                <meta
+                    http-equiv="Content-Security-Policy"
+                    content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';"
+                />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>Syntax Tree</title>
+                <link href="${styleVSCodeUri}" rel="stylesheet" />
+                <link href="${astEditorUri}" rel="stylesheet" />
+            </head>
+            <body>
+                <div class="notes">
+                    <div class="add-button">
+                        <button>Scratch!</button>
+                    </div>
                 </div>
-            </div>
-            
-            
-        </body>
+                <div id="output-container-scroll">
+                    <div id="output-container" class="highlight" tabindex="0" style="counter-increment: clusterize-counter -1">
+                        <div class="row"><a class="node-link named" href="#" data-id="641944" data-range="0,0,2,0">translation_unit</a> <span class="position-info">[0, 0] - [2, 0]</span></div>
+                        <ul class="tree-child">
+                            <li class="tree-row">
+                                <div class="row"><a class="node-link named" href="#" data-id="641848" data-range="0,0,0,10">declaration</a> <span class="position-info">[0, 0] - [0, 10]</span></div>
+                                <ul class="tree-child">
+                                    <li class="tree-row">
+                                        <div class="row">type: <a class="node-link named" href="#" data-id="639432" data-range="0,0,0,3">type_identifier</a> <span class="position-info">[0, 0] - [0, 3]</span></div>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="tree-row">
+                                <div class="row">declarator: <a class="node-link named" href="#" data-id="640568" data-range="0,4,0,9">init_declarator</a> <span class="position-info">[0, 4] - [0, 9]</span></div>
+                                <ul class="tree-child">
+                                    <li class="tree-row">
+                                        <div class="row">declarator: <a class="node-link named" href="#" data-id="639776" data-range="0,4,0,5">identifier</a> <span class="position-info">[0, 4] - [0, 5]</span></div>
+                                    </li>
+                                    <li class="tree-row">
+                                        <div class="row"><a class="node-link anonymous" href="#" data-id="640464" data-range="0,6,0,7">=</a> <span class="position-info">[0, 6] - [0, 7]</span></div>
+                                    </li>
+                                    <li class="tree-row">
+                                        <div class="row">value: <a class="node-link named" href="#" data-id="640200" data-range="0,8,0,9">number_literal</a> <span class="position-info">[0, 8] - [0, 9]</span></div>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="tree-row">
+                                <div class="row"><a class="node-link anonymous" href="#" data-id="640576" data-range="0,9,0,10">;</a> <span class="position-info">[0, 9] - [0, 10]</span></div>
+                            </li>
+                        </ul>
+                        <ul class="tree-child">
+                            <li class="tree-row">
+                                <div class="row"><a class="node-link named" href="#" data-id="641856" data-range="1,0,1,16">expression_statement</a> <span class="position-info">[1, 0] - [1, 16]</span></div>
+                                <ul class="tree-child">
+                                    <li class="tree-row">
+                                        <div class="row"><a class="node-link named" href="#" data-id="641664" data-range="1,0,1,15">call_expression</a> <span class="position-info">[1, 0] - [1, 15]</span></div>
+                                        <ul class="tree-child">
+                                            <li class="tree-row">
+                                                <div class="row">function: <a class="node-link named" href="#" data-id="640944" data-range="1,0,1,11">field_expression</a> <span class="position-info">[1, 0] - [1, 11]</span></div>
+                                                <ul class="tree-child">
+                                                    <li class="tree-row">
+                                                        <div class="row">argument: <a class="node-link named" href="#" data-id="640664" data-range="1,0,1,7">identifier</a> <span class="position-info">[1, 0] - [1, 7]</span></div>
+                                                    </li>
+                                                    <li class="tree-row">
+                                                        <div class="row">operator: <a class="node-link anonymous" href="#" data-id="640848" data-range="1,7,1,8">.</a> <span class="position-info">[1, 7] - [1, 8]</span></div>
+                                                    </li>
+                                                    <li class="tree-row">
+                                                        <div class="row">field: <a class="node-link named" href="#" data-id="640856" data-range="1,8,1,11">field_identifier</a> <span class="position-info">[1, 8] - [1, 11]</span></div>
+                                                    </li>
+                                                </ul>
+                                            </li>
+                                            <li class="tree-row">
+                                                <div class="row">arguments: <a class="node-link named" href="#" data-id="641576" data-range="1,11,1,15">argument_list</a> <span class="position-info">[1, 11] - [1, 15]</span></div>
+                                                <ul class="tree-child">
+                                                    <li class="tree-row">
+                                                        <div class="row"><a class="node-link anonymous" href="#" data-id="641296" data-range="1,11,1,12">(</a> <span class="position-info">[1, 11] - [1, 12]</span></div>
+                                                    </li>
+                                                    <li class="tree-row">
+                                                        <div class="row"><a class="node-link named" href="#" data-id="641120" data-range="1,12,1,14">identifier</a> <span class="position-info">[1, 12] - [1, 14]</span></div>
+                                                    </li>
+                                                    <li class="tree-row">
+                                                        <div class="row"><a class="node-link anonymous" href="#" data-id="641312" data-range="1,14,1,15">)</a> <span class="position-info">[1, 14] - [1, 15]</span></div>
+                                                    </li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="tree-row">
+                                <div class="row"><a class="node-link anonymous" href="#" data-id="641760" data-range="1,15,1,16">;</a> <span class="position-info">[1, 15] - [1, 16]</span></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </body>
         </html>
+
         `;
     }
 }
