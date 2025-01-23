@@ -1,12 +1,65 @@
 import fs from "fs";
 import path from "path";
 import * as vscode from "vscode";
-import Parser from "web-tree-sitter";
+import Parser, { Point, SyntaxNode } from "web-tree-sitter";
 
 // wasm文件目录
 const WASM_DIR = __dirname;
 // 语言对应的Parser实例
 const TS_PARSER = new Map<string, Parser>();
+
+class MiniNode {
+    id: number;
+    typeId: number;
+    grammarId: number;
+    type: string;
+    grammarType: string;
+    isNamed: boolean;
+    isMissing: boolean;
+    isExtra: boolean;
+    hasChanges: boolean;
+    hasError: boolean;
+    isError: boolean;
+    text: string;
+    parseState: number;
+    nextParseState: number;
+    startPosition: Point;
+    endPosition: Point;
+    startIndex: number;
+    endIndex: number;
+    parentId?: number;
+    children: Array<MiniNode>;
+    namedChildren: Array<MiniNode>;
+    childCount: number;
+    namedChildCount: number;
+    descendantCount: number;
+    constructor(node: SyntaxNode) {
+        this.id = node.id;
+        this.typeId = node.typeId;
+        this.grammarId = node.grammarId;
+        this.type = node.type;
+        this.grammarType = node.grammarType;
+        this.isNamed = node.isNamed;
+        this.isMissing = node.isMissing;
+        this.isExtra = node.isExtra;
+        this.hasChanges = node.hasChanges;
+        this.hasError = node.hasError;
+        this.isError = node.isError;
+        this.text = node.text;
+        this.parseState = node.parseState;
+        this.nextParseState = node.nextParseState;
+        this.startPosition = node.startPosition;
+        this.endPosition = node.endPosition;
+        this.startIndex = node.startIndex;
+        this.endIndex = node.endIndex;
+        this.parentId = node.parent?.id;
+        this.childCount = node.childCount;
+        this.namedChildCount = node.namedChildCount;
+        this.descendantCount = node.descendantCount;
+        this.children = node.children.map(child => new MiniNode(child));
+        this.namedChildren = node.namedChildren.map(child => new MiniNode(child));
+    }
+}
 
 /**
  * 解析代码文本生成语法树
@@ -14,13 +67,13 @@ const TS_PARSER = new Map<string, Parser>();
  * @param language 语言
  * @returns 
  */
-export async function parserAst(text: string, language: string) {
+export async function parserMiniAst(text: string, language: string) {
     // 获取Parser实例
     const parser = await getParser(language);
     // 解析代码文本生成语法树
     const tree = parser.parse(text);
     // 返回根节点
-    return tree.rootNode;
+    return new MiniNode(tree.rootNode);
 }
 
 /**
@@ -34,7 +87,11 @@ export async function getParser(language: string) {
         return parser;
     }
     // 检查wasm文件
-    await checkLanguageWasm(language);
+    const error = await checkLanguageWasm(language);
+    if (error) {
+        vscode.window.showErrorMessage(error);
+        throw new Error(error);
+    }
     // 初始化Parser实例
     return initTSParser(language);
 }
@@ -77,7 +134,7 @@ async function checkLanguageWasm(language: string) {
  * @param wasmPath wasm文件保存路径
  * @returns
  */
-function downloadWasmFile(language: string, wasmPath: string) {
+function downloadWasmFile(language: string, wasmPath: string): Promise<any> {
     return new Promise<void>((resolve, reject) => {
         vscode.window.withProgress(
             {
@@ -90,20 +147,15 @@ function downloadWasmFile(language: string, wasmPath: string) {
                 try {
                     const response = await fetch(wasmUrl);
                     if (!response.ok) {
-                        throw new Error(`Failed to download ${language} wasm file: ${response.statusText}`);
+                        throw new Error(response.statusText);
                     }
                     const arrayBuffer = await response.arrayBuffer();
                     const buffer = Buffer.from(arrayBuffer);
-                    fs.writeFileSync(wasmPath, buffer);
-                    vscode.window.showInformationMessage(`Successfully downloaded ${language} wasm file`);
+                    fs.writeFileSync(wasmPath, buffer)
                     resolve();
                 } catch (error) {
-                    if (error instanceof Error) {
-                        console.error(error.message);
-                    } else {
-                        console.error(error);
-                    }
-                    reject(error);
+                    console.error(`Failed to download wasm file. Url: ${wasmUrl}, Error: ${error}`);
+                    reject(`Failed to download wasm file. Url: ${wasmUrl}, Error: ${error}`);
                 } finally {
                     progress.report({ increment: 100 });
                 }

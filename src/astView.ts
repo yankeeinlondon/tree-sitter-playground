@@ -1,88 +1,83 @@
+import path from "path";
 import * as vscode from "vscode";
-/**
- * 抽象语法树的web视图
- */
-export class AstWebview{
-    static readonly viewType = 'tree-sitter-viewer.ast-webview';
-    readonly webviewPanel: vscode.WebviewPanel;
+import { getParser, parserMiniAst } from "./parser";
 
-    constructor(webview: vscode.WebviewPanel){
-        this.webviewPanel = webview;
+export class ASTWebviewManager {
+    private static _extensionContext: vscode.ExtensionContext;
+    private static _cache = new Map<vscode.Uri, AstWebview>();
+    public static get extensionContext() {
+        return this._extensionContext;
+    }
+
+    static initManager(extensionContext: vscode.ExtensionContext) {
+        if (this._extensionContext) {
+            console.error(`ASTWebviewManager has been initialized successfully.`)
+            return;
+        }
+        this._extensionContext = extensionContext;
+    }
+
+    /**
+     * 创建一个语法树的web视图
+     * @param doc vscode打开的文档
+     */
+    static async createAstWebview(doc: vscode.TextDocument) {
+        let webview = this._cache.get(doc.uri);
+        if (webview) {
+            this.reveal(webview);
+        }
+        webview = new AstWebview(doc);
+        this._cache.set(doc.uri, webview);
+    }
+
+    /**
+     * 恢复一个语法树web视图
+     * @param webview 语法树web视图
+     */
+    static async reveal(webview: AstWebview) {
+
     }
 }
 
-export class AstEditorProvider implements vscode.CustomTextEditorProvider {
-    // 抽象语法树编辑器的视图类型
-    static readonly viewType = "tree-sitter-viewer.ast-editor";
+/**
+ * 语法树web视图类
+ */
+class AstWebview {
+    public static readonly viewType = 'tree-sitter-viewer.ast-webview';
+    // 打开的代码文档
+    private readonly doc: vscode.TextDocument;
+    private webviewPanel: vscode.WebviewPanel;
+
     // 构造函数
-    constructor(private readonly context: vscode.ExtensionContext) {}
+    constructor(doc: vscode.TextDocument) {
+        this.doc = doc;
 
-    /**
-     * 解决给定文本资源的自定义编辑器。
-     * 当用户首次打开`CustomTextEditorProvider”的资源，或者使用此`CustomTextEditorProvider”重新打开现有编辑器时，将调用此函数。
-     *
-     * @param document 要解析的资源的文档。
-     * @param webviewPanel 用于显示此资源的编辑器 UI 的 Web 视图面板。
-     * 在解析过程中，提供者必须填写内容 Webview 面板的初始 html，并连接其上所有感兴趣的事件侦听器。提供者还可以保留`WebviewPanel`，以便以后在命令中使用。更多详情请参见 {@linkcode WebviewPanel}。
-     * @param token 一个取消令牌，指示不再需要结果。
-     * @returns Thenable 表示自定义编辑器已经解决。
-     */
-    resolveCustomTextEditor(
-        document: vscode.TextDocument,
-        webviewPanel: vscode.WebviewPanel,
-        token: vscode.CancellationToken
-    ): Thenable<void> | void {
-        // 初始化编辑器的webview
-        webviewPanel.webview.options = { enableScripts: true };
-        webviewPanel.webview.html = this.getHtml(webviewPanel.webview); //TODO 要实现编辑器页面
+        const viewTitle = `Ast - ${path.basename(doc.fileName)}`;
+        this.webviewPanel = vscode.window.createWebviewPanel(AstWebview.viewType, viewTitle, vscode.ViewColumn.Beside, { enableFindWidget: true, });
+        this.webviewPanel.webview.options = { enableScripts: true };
+        this.webviewPanel.webview.html = this.getHtml();
+        this.refresh();
+    }
 
-        // 监听文档的修改事件
-        const changeDispose = vscode.workspace.onDidChangeTextDocument((event) => {
-            const doc = event.document;
-            if (doc.uri.toString() === document.uri.toString()) {
-                this.updateWebview(webviewPanel, doc);
-            }
+    private asWebviewUri(...paths: string[]) {
+        const path = vscode.Uri.joinPath(ASTWebviewManager.extensionContext.extensionUri, "resources", ...paths);
+        return this.webviewPanel.webview.asWebviewUri(path)
+    }
+
+    private async refresh() {
+        const text = this.doc.getText();
+        const tree = await parserMiniAst(text, this.doc.languageId);
+        this.webviewPanel.webview.postMessage({
+            command: 'update',
+            tree: JSON.stringify(tree)
         });
-        // 监听在vscode文本编辑器内的鼠标点击事件，并得到光标的位置
-        vscode.window.onDidChangeTextEditorSelection((event) => {});
-
-        // 当webview销毁时，停止对文档事件的监听
-        webviewPanel.onDidDispose(() => changeDispose.dispose());
-        // 更新webview的内容
-        this.updateWebview(webviewPanel, document);
     }
 
-    private updateWebview(webviewPanel: vscode.WebviewPanel, doc: vscode.TextDocument) {
-        webviewPanel.webview.postMessage({
-            type: "update",
-            text: doc.getText(),
-        });
-        // this.updateTextDocument(doc);
-    }
-    /**
-     * 将JSON写入给定文档
-     */
-    private updateTextDocument(document: vscode.TextDocument) {
-        const edit = new vscode.WorkspaceEdit();
-
-        // 每次替换整个文档
-        edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), document.getText());
-
-        return vscode.workspace.applyEdit(edit);
-    }
-
-    private getHtml(webview: vscode.Webview) {
-        
-		const styleVSCodeUri = webview.asWebviewUri(
-			vscode.Uri.joinPath(this.context.extensionUri, "resources", "css",  'vscode.css')
-		);
-		const astEditorUri = webview.asWebviewUri(
-			vscode.Uri.joinPath(this.context.extensionUri, "resources", "css",  'astEditor.css')
-		);
-        const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this.context.extensionUri, "resources", "js", "astEditor.js")
-        );
-        // 使用nonce来限制可运行的脚本
+    private getHtml() {
+        const styleVSCodeUri = this.asWebviewUri("css", 'vscode.css');
+        const astEditorUri = this.asWebviewUri("css", 'astEditor.css');
+        const scriptUri = this.asWebviewUri("js", "astView.js");
+        const cspSource = this.webviewPanel.webview.cspSource;
         const nonce = getNonce();
         return /* html */ `
         <!DOCTYPE html>
@@ -93,7 +88,7 @@ export class AstEditorProvider implements vscode.CustomTextEditorProvider {
                 <!-- 使用内容安全策略限制资源加载 -->
                 <meta
                     http-equiv="Content-Security-Policy"
-                    content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';"
+                    content="default-src 'none'; img-src ${cspSource}; style-src ${cspSource}; script-src 'nonce-${nonce}';"
                 />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <title>Syntax Tree</title>
@@ -182,12 +177,11 @@ export class AstEditorProvider implements vscode.CustomTextEditorProvider {
                     </div>
                 </div>
             </body>
+            <script nonce="${nonce}" src="${scriptUri}"></script>
         </html>
-
         `;
     }
 }
-
 function getNonce() {
     let text = "";
     const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
