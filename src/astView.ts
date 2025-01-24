@@ -1,10 +1,10 @@
 import path from "path";
 import * as vscode from "vscode";
-import { getParser, parserMiniAst } from "./parser";
+import { getParser, parserAndFlatAstNodes } from "./parser";
 
 export class ASTWebviewManager {
     private static _extensionContext: vscode.ExtensionContext;
-    private static _cache = new Map<vscode.Uri, AstWebview>();
+    private static _cache = new Map<string, vscode.WebviewPanel>();
     public static get extensionContext() {
         return this._extensionContext;
     }
@@ -15,6 +15,8 @@ export class ASTWebviewManager {
             return;
         }
         this._extensionContext = extensionContext;
+        // 注册一个web视图序列化器
+        vscode.window.registerWebviewPanelSerializer(AstWebview.viewType, new AstWebviewSerializer());
     }
 
     /**
@@ -22,21 +24,42 @@ export class ASTWebviewManager {
      * @param doc vscode打开的文档
      */
     static async createAstWebview(doc: vscode.TextDocument) {
-        let webview = this._cache.get(doc.uri);
+        let webview = this._cache.get(doc.uri.toString(true));
         if (webview) {
-            this.reveal(webview);
+            this.reveal(doc, webview);
         }
-        webview = new AstWebview(doc);
-        this._cache.set(doc.uri, webview);
+        const astWebview = new AstWebview(doc);
+
+        this._cache.set(doc.uri.toString(true), astWebview.webviewPanel);
     }
 
     /**
      * 恢复一个语法树web视图
      * @param webview 语法树web视图
      */
-    static async reveal(webview: AstWebview) {
-
+    static async reveal(doc:vscode.TextDocument, webview: vscode.WebviewPanel) {
+        new AstWebview(doc, webview);
     }
+}
+
+export class AstWebviewSerializer implements vscode.WebviewPanelSerializer {
+    async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+        // `state` is the state persisted using `setState` inside the webview
+        console.log(`Got state: ${state}`);
+    
+        // Restore the content of our webview.
+        //
+        // Make sure we hold on to the `webviewPanel` passed in here and
+        // also restore any event listeners we need on it.
+       // webviewPanel.webview.html = getWebviewContent();
+       
+       try{
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(state.docUri));
+        ASTWebviewManager.reveal(doc, webviewPanel)
+       }catch(error){
+        console.error(error)
+       }
+      }
 }
 
 /**
@@ -46,15 +69,18 @@ class AstWebview {
     public static readonly viewType = 'tree-sitter-viewer.ast-webview';
     // 打开的代码文档
     private readonly doc: vscode.TextDocument;
-    private webviewPanel: vscode.WebviewPanel;
+    readonly webviewPanel: vscode.WebviewPanel;
 
     // 构造函数
-    constructor(doc: vscode.TextDocument) {
+    constructor(doc: vscode.TextDocument, webviewPanel?:vscode.WebviewPanel) {
         this.doc = doc;
-
-        const viewTitle = `Ast - ${path.basename(doc.fileName)}`;
-        this.webviewPanel = vscode.window.createWebviewPanel(AstWebview.viewType, viewTitle, vscode.ViewColumn.Beside, { enableFindWidget: true, });
-        this.webviewPanel.webview.options = { enableScripts: true };
+        if(webviewPanel){
+            this.webviewPanel = webviewPanel;
+        }else{
+            const viewTitle = `Ast - ${path.basename(doc.fileName)}`;
+            this.webviewPanel = vscode.window.createWebviewPanel(AstWebview.viewType, viewTitle, vscode.ViewColumn.Beside, { enableFindWidget: true, });
+            this.webviewPanel.webview.options = { enableScripts: true };
+        }
         this.webviewPanel.webview.html = this.getHtml();
         this.refresh();
     }
@@ -66,10 +92,11 @@ class AstWebview {
 
     private async refresh() {
         const text = this.doc.getText();
-        const tree = await parserMiniAst(text, this.doc.languageId);
+        const nodes = await parserAndFlatAstNodes(text, this.doc.languageId);
         this.webviewPanel.webview.postMessage({
             command: 'update',
-            tree: JSON.stringify(tree)
+            docUri: this.doc.uri.toString(true),
+            nodes: JSON.stringify(nodes)
         });
     }
 
@@ -84,96 +111,36 @@ class AstWebview {
         <html lang="en">
             <head>
                 <meta charset="UTF-8" />
-
                 <!-- 使用内容安全策略限制资源加载 -->
                 <meta
                     http-equiv="Content-Security-Policy"
-                    content="default-src 'none'; img-src ${cspSource}; style-src ${cspSource}; script-src 'nonce-${nonce}';"
-                />
+                    content="default-src 'none'; img-src ${cspSource}; style-src ${cspSource}; script-src 'nonce-${nonce}';"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <title>Syntax Tree</title>
                 <link href="${styleVSCodeUri}" rel="stylesheet" />
                 <link href="${astEditorUri}" rel="stylesheet" />
             </head>
             <body>
-                <div class="notes">
-                    <div class="add-button">
-                        <button>Scratch!</button>
+                <div class="tool-container">
+                    <div class="tool-item">
+                        <input type="checkbox" id="show-anonymous-checkbox" ></input>
+                        <label for="show-anonymous-checkbox">显示匿名节点</label>
                     </div>
+                    <div class="tool-item">
+                        <input type="checkbox" id="enabled-query-checkbox" ></input>
+                        <label for="enabled-query-checkbox">启用查询</label>
+                    </div><br>
                 </div>
+                <div class="query-container">
+                    <label>查询语句：</label>
+                    <textarea id="query-input"></textarea>
+                </div>
+                <div class="split-line"><div>Tree: </div><hr /></div>
                 <div id="output-container-scroll">
-                    <div id="output-container" class="highlight" tabindex="0" style="counter-increment: clusterize-counter -1">
-                        <div class="row"><a class="node-link named" href="#" data-id="641944" data-range="0,0,2,0">translation_unit</a> <span class="position-info">[0, 0] - [2, 0]</span></div>
-                        <ul class="tree-child">
-                            <li class="tree-row">
-                                <div class="row"><a class="node-link named" href="#" data-id="641848" data-range="0,0,0,10">declaration</a> <span class="position-info">[0, 0] - [0, 10]</span></div>
-                                <ul class="tree-child">
-                                    <li class="tree-row">
-                                        <div class="row">type: <a class="node-link named" href="#" data-id="639432" data-range="0,0,0,3">type_identifier</a> <span class="position-info">[0, 0] - [0, 3]</span></div>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="tree-row">
-                                <div class="row">declarator: <a class="node-link named" href="#" data-id="640568" data-range="0,4,0,9">init_declarator</a> <span class="position-info">[0, 4] - [0, 9]</span></div>
-                                <ul class="tree-child">
-                                    <li class="tree-row">
-                                        <div class="row">declarator: <a class="node-link named" href="#" data-id="639776" data-range="0,4,0,5">identifier</a> <span class="position-info">[0, 4] - [0, 5]</span></div>
-                                    </li>
-                                    <li class="tree-row">
-                                        <div class="row"><a class="node-link anonymous" href="#" data-id="640464" data-range="0,6,0,7">=</a> <span class="position-info">[0, 6] - [0, 7]</span></div>
-                                    </li>
-                                    <li class="tree-row">
-                                        <div class="row">value: <a class="node-link named" href="#" data-id="640200" data-range="0,8,0,9">number_literal</a> <span class="position-info">[0, 8] - [0, 9]</span></div>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="tree-row">
-                                <div class="row"><a class="node-link anonymous" href="#" data-id="640576" data-range="0,9,0,10">;</a> <span class="position-info">[0, 9] - [0, 10]</span></div>
-                            </li>
-                        </ul>
-                        <ul class="tree-child">
-                            <li class="tree-row">
-                                <div class="row"><a class="node-link named" href="#" data-id="641856" data-range="1,0,1,16">expression_statement</a> <span class="position-info">[1, 0] - [1, 16]</span></div>
-                                <ul class="tree-child">
-                                    <li class="tree-row">
-                                        <div class="row"><a class="node-link named" href="#" data-id="641664" data-range="1,0,1,15">call_expression</a> <span class="position-info">[1, 0] - [1, 15]</span></div>
-                                        <ul class="tree-child">
-                                            <li class="tree-row">
-                                                <div class="row">function: <a class="node-link named" href="#" data-id="640944" data-range="1,0,1,11">field_expression</a> <span class="position-info">[1, 0] - [1, 11]</span></div>
-                                                <ul class="tree-child">
-                                                    <li class="tree-row">
-                                                        <div class="row">argument: <a class="node-link named" href="#" data-id="640664" data-range="1,0,1,7">identifier</a> <span class="position-info">[1, 0] - [1, 7]</span></div>
-                                                    </li>
-                                                    <li class="tree-row">
-                                                        <div class="row">operator: <a class="node-link anonymous" href="#" data-id="640848" data-range="1,7,1,8">.</a> <span class="position-info">[1, 7] - [1, 8]</span></div>
-                                                    </li>
-                                                    <li class="tree-row">
-                                                        <div class="row">field: <a class="node-link named" href="#" data-id="640856" data-range="1,8,1,11">field_identifier</a> <span class="position-info">[1, 8] - [1, 11]</span></div>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                            <li class="tree-row">
-                                                <div class="row">arguments: <a class="node-link named" href="#" data-id="641576" data-range="1,11,1,15">argument_list</a> <span class="position-info">[1, 11] - [1, 15]</span></div>
-                                                <ul class="tree-child">
-                                                    <li class="tree-row">
-                                                        <div class="row"><a class="node-link anonymous" href="#" data-id="641296" data-range="1,11,1,12">(</a> <span class="position-info">[1, 11] - [1, 12]</span></div>
-                                                    </li>
-                                                    <li class="tree-row">
-                                                        <div class="row"><a class="node-link named" href="#" data-id="641120" data-range="1,12,1,14">identifier</a> <span class="position-info">[1, 12] - [1, 14]</span></div>
-                                                    </li>
-                                                    <li class="tree-row">
-                                                        <div class="row"><a class="node-link anonymous" href="#" data-id="641312" data-range="1,14,1,15">)</a> <span class="position-info">[1, 14] - [1, 15]</span></div>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </li>
-                            <li class="tree-row">
-                                <div class="row"><a class="node-link anonymous" href="#" data-id="641760" data-range="1,15,1,16">;</a> <span class="position-info">[1, 15] - [1, 16]</span></div>
-                            </li>
-                        </ul>
+                    <div class="tree-container">
+                        <div class="row-number-container" id="row-number-container"></div>
+                        <div id="output-container" class="highlight" tabindex="0" style="counter-increment: clusterize-counter -1">
+                        </div>
                     </div>
                 </div>
             </body>

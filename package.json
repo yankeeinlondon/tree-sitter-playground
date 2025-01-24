@@ -21,7 +21,9 @@
     "categories": [
         "Other"
     ],
-    "activationEvents": [],
+    "activationEvents": [
+        "onWebviewPanel:tree-sitter-viewer.ast-webview"
+    ],
     "main": "./dist/extension.js",
     "enabledApiProposals": [
         "contribEditorContentMenu"

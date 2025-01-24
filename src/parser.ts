@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import * as vscode from "vscode";
-import Parser, { Point, SyntaxNode } from "web-tree-sitter";
+import Parser, { Point, SyntaxNode, TreeCursor } from "web-tree-sitter";
 
 // wasm文件目录
 const WASM_DIR = __dirname;
@@ -28,12 +28,15 @@ class MiniNode {
     startIndex: number;
     endIndex: number;
     parentId?: number;
-    children: Array<MiniNode>;
-    namedChildren: Array<MiniNode>;
+    children?: Array<MiniNode>;
+    namedChildren?: Array<MiniNode>;
     childCount: number;
     namedChildCount: number;
     descendantCount: number;
-    constructor(node: SyntaxNode) {
+    level: number;
+    fieldId: number;
+    fieldName?: string;
+    constructor(node: SyntaxNode, walk: TreeCursor) {
         this.id = node.id;
         this.typeId = node.typeId;
         this.grammarId = node.grammarId;
@@ -56,24 +59,51 @@ class MiniNode {
         this.childCount = node.childCount;
         this.namedChildCount = node.namedChildCount;
         this.descendantCount = node.descendantCount;
-        this.children = node.children.map(child => new MiniNode(child));
-        this.namedChildren = node.namedChildren.map(child => new MiniNode(child));
+        this.level = walk.currentDepth || 0;
+        this.fieldId = walk.currentFieldId || -1;
+        this.fieldName = walk.currentFieldName || '';
+
+        // this.children = node.children.map(child => new MiniNode(child, this.level));
+        // this.namedChildren = node.namedChildren.map(child => new MiniNode(child, this.level));
     }
 }
 
 /**
- * 解析代码文本生成语法树
+ * 将代码文本解析为语法树，并以扁平化形式将语法树输出位节点数组
  * @param text 代码文本
  * @param language 语言
  * @returns 
  */
-export async function parserMiniAst(text: string, language: string) {
+export async function parserAndFlatAstNodes(text: string, language: string): Promise<MiniNode[]> {
     // 获取Parser实例
     const parser = await getParser(language);
     // 解析代码文本生成语法树
     const tree = parser.parse(text);
+    const list: MiniNode[] = [];
+    const walk = tree.walk();
+    let walkIn = true;
+    do {
+        if(!walkIn){
+            // 向父节点游走
+            if(!walk.gotoParent()){
+                break;
+            }
+            if(!walk.gotoNextSibling()){
+                continue;
+            }
+        }
+        walkIn = true;
+        list.push(new MiniNode(walk.currentNode, walk));
+        if (walk.gotoFirstChild()) {
+            continue;
+        }
+        if (walk.gotoNextSibling()) {
+            continue;
+        }
+        walkIn = false;
+    } while (true);
     // 返回根节点
-    return new MiniNode(tree.rootNode);
+    return list;
 }
 
 /**
