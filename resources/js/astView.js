@@ -1,5 +1,53 @@
+const queryContainer = document.getElementById('query-container');
+const showAnonymousCheckbox = document.getElementById('show-anonymous-checkbox');
+const enableQueryCheckbox = document.getElementById('enabled-query-checkbox');
+
+const vscode = acquireVsCodeApi();
+class GlobalState {
+    docUri = "";
+    nodes = [];
+    enableQuery = false;
+    showAnonymousNodes = false;
+    constructor(state = {}) {
+        Object.assign(this, state)
+    }
+
+    setDocUri(value) {
+        this.docUri = value;
+        vscode.setState(this);
+    }
+    
+    setNodes(value = []) {
+        this.nodes = value;
+        vscode.setState(this);
+        updateTree(this.nodes)
+    }
+
+    setEnableQuery(value) {
+        this.enableQuery = value;
+        vscode.setState(this);
+        enableQueryCheckbox.checked = value;
+        queryContainer.style.display = this.enableQuery  ? "block" : "none";
+    }
+
+    setShowAnonymousNodes(value) {
+        this.showAnonymousNodes = value;
+        vscode.setState(this);
+        showAnonymousCheckbox.checked = value;
+    }
+}
+
 (function () {
-    const vscode = acquireVsCodeApi();
+    const globalState = new GlobalState();// 每次重新加载页面时尝试恢复状态中的数据
+    const state = vscode.getState();
+    
+    console.log("GLOBAL STATE", state);
+    if (state) {
+        state.nodes && globalState.setNodes(state.nodes);
+        globalState.setEnableQuery(state.enableQuery);
+        globalState.setShowAnonymousNodes(state.showAnonymousNodes);
+    }
+
     // 发送一个消息
     vscode.postMessage({
         command: 'alert',
@@ -12,8 +60,8 @@
         switch (message.command) {
             case 'update':
                 const { docUri, nodes } = message;
-                updateTree(nodes)
-                vscode.setState({ docUri, nodes });
+                globalState.setDocUri(docUri);
+                globalState.setNodes(nodes);
                 break;
             case 'scroll':
                 // TODO 随编辑器滚动
@@ -24,11 +72,12 @@
         }
     });
 
-    // 每次重新加载页面时尝试恢复状态中的数据
-    const state = vscode.getState();
-    if (state && state.nodes) {
-        updateTree(state.nodes);
-    }
+    showAnonymousCheckbox.addEventListener('change', (that, event) => {
+        globalState.setShowAnonymousNodes(showAnonymousCheckbox.checked);
+    });
+    enableQueryCheckbox.addEventListener('change', (that, event) => {
+        globalState.setEnableQuery(enableQueryCheckbox.checked);
+    });
 })()
 
 /**

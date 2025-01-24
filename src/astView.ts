@@ -131,7 +131,7 @@ class AstWebview {
                         <label for="enabled-query-checkbox">启用查询</label>
                     </div><br>
                 </div>
-                <div class="query-container">
+                <div class="query-container" id="query-container">
                     <label>查询语句：</label>
                     <textarea id="query-input"></textarea>
                 </div>
