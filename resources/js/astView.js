@@ -9,7 +9,7 @@ class GlobalState {
     enableQuery = false;
     showAnonymousNodes = false;
     constructor(state = {}) {
-        Object.assign(this, state)
+        Object.assign(this, state);
     }
 
     setDocUri(value) {
@@ -20,7 +20,7 @@ class GlobalState {
     setNodes(value = []) {
         this.nodes = value;
         vscode.setState(this);
-        updateTree(this.nodes)
+        updateTree(this.nodes);
     }
 
     setEnableQuery(value) {
@@ -52,7 +52,7 @@ class GlobalState {
     vscode.postMessage({
         command: 'alert',
         text: '🐛  on line '
-    })
+    });
 
     // 添加接收消息的监听
     window.addEventListener('message', event => {
@@ -78,7 +78,7 @@ class GlobalState {
     enableQueryCheckbox.addEventListener('change', (that, event) => {
         globalState.setEnableQuery(enableQueryCheckbox.checked);
     });
-})()
+})();
 
 /**
  * 更新语法树
@@ -104,5 +104,5 @@ function treeNodeToHtml(nodes) {
         rows += `<div class="row">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link ${node.isNamed ? 'named' : 'anonymous'}" href="#" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
         rowNumbers += `<div class="row">${i + 1}</div>`;
     }
-    return { rows, rowNumbers }
+    return { rows, rowNumbers };
 }

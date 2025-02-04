@@ -11,7 +11,7 @@ export class ASTWebviewManager {
 
     static initManager(extensionContext: vscode.ExtensionContext) {
         if (this._extensionContext) {
-            console.error(`ASTWebviewManager has been initialized successfully.`)
+            console.error(`ASTWebviewManager has been initialized successfully.`);
             return;
         }
         this._extensionContext = extensionContext;
@@ -37,7 +37,7 @@ export class ASTWebviewManager {
      * 恢复一个语法树web视图
      * @param webview 语法树web视图
      */
-    static async reveal(doc:vscode.TextDocument, webview: vscode.WebviewPanel) {
+    static async reveal(doc: vscode.TextDocument, webview: vscode.WebviewPanel) {
         new AstWebview(doc, webview);
     }
 }
@@ -46,39 +46,44 @@ export class AstWebviewSerializer implements vscode.WebviewPanelSerializer {
     async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
         // `state` is the state persisted using `setState` inside the webview
         console.log(`Got state: ${state}`);
-    
+
         // Restore the content of our webview.
         //
         // Make sure we hold on to the `webviewPanel` passed in here and
         // also restore any event listeners we need on it.
-       // webviewPanel.webview.html = getWebviewContent();
-       
-       try{
-        const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(state.docUri));
-        ASTWebviewManager.reveal(doc, webviewPanel)
-       }catch(error){
-        console.error(error)
-       }
-      }
+        // webviewPanel.webview.html = getWebviewContent();
+
+        try {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(state.docUri));
+            ASTWebviewManager.reveal(doc, webviewPanel);
+        } catch (error) {
+            console.error(error);
+        }
+    }
 }
 
 /**
  * 语法树web视图类
  */
 class AstWebview {
-    public static readonly viewType = 'tree-sitter-viewer.ast-webview';
+    public static readonly viewType = "tree-sitter-viewer.ast-webview";
     // 打开的代码文档
     private readonly doc: vscode.TextDocument;
     readonly webviewPanel: vscode.WebviewPanel;
 
     // 构造函数
-    constructor(doc: vscode.TextDocument, webviewPanel?:vscode.WebviewPanel) {
+    constructor(doc: vscode.TextDocument, webviewPanel?: vscode.WebviewPanel) {
         this.doc = doc;
-        if(webviewPanel){
+        if (webviewPanel) {
             this.webviewPanel = webviewPanel;
-        }else{
+        } else {
             const viewTitle = `Ast - ${path.basename(doc.fileName)}`;
-            this.webviewPanel = vscode.window.createWebviewPanel(AstWebview.viewType, viewTitle, vscode.ViewColumn.Beside, { enableFindWidget: true, });
+            this.webviewPanel = vscode.window.createWebviewPanel(
+                AstWebview.viewType,
+                viewTitle,
+                vscode.ViewColumn.Beside,
+                { enableFindWidget: true }
+            );
             this.webviewPanel.webview.options = { enableScripts: true };
         }
         this.webviewPanel.webview.html = this.getHtml();
@@ -87,22 +92,22 @@ class AstWebview {
 
     private asWebviewUri(...paths: string[]) {
         const path = vscode.Uri.joinPath(ASTWebviewManager.extensionContext.extensionUri, "resources", ...paths);
-        return this.webviewPanel.webview.asWebviewUri(path)
+        return this.webviewPanel.webview.asWebviewUri(path);
     }
 
     private async refresh() {
         const text = this.doc.getText();
         const nodes = await parserAndFlatAstNodes(text, this.doc.languageId);
         this.webviewPanel.webview.postMessage({
-            command: 'update',
+            command: "update",
             docUri: this.doc.uri.toString(true),
-            nodes: JSON.stringify(nodes)
+            nodes: JSON.stringify(nodes),
         });
     }
 
     private getHtml() {
-        const styleVSCodeUri = this.asWebviewUri("css", 'vscode.css');
-        const astEditorUri = this.asWebviewUri("css", 'astEditor.css');
+        const styleVSCodeUri = this.asWebviewUri("css", "vscode.css");
+        const astEditorUri = this.asWebviewUri("css", "astEditor.css");
         const scriptUri = this.asWebviewUri("js", "astView.js");
         const cspSource = this.webviewPanel.webview.cspSource;
         const nonce = getNonce();
