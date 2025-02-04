@@ -43,6 +43,7 @@ class GlobalState {
     
     console.log("GLOBAL STATE", state);
     if (state) {
+        state.docUri && globalState.setDocUri(state.docUri);
         state.nodes && globalState.setNodes(state.nodes);
         globalState.setEnableQuery(state.enableQuery);
         globalState.setShowAnonymousNodes(state.showAnonymousNodes);
@@ -100,7 +101,7 @@ function treeNodeToHtml(nodes) {
         const { row: startRow, column: startColumn } = node.startPosition;
         const { row: endRow, column: endColumn } = node.endPosition;
         // 设置缩进
-        const indentHtml = `<span class="indent">&nbsp;&nbsp;&nbsp;&nbsp;</span>`.repeat(node.level);
+        const indentHtml = `<span class="indent">&nbsp;&nbsp;</span>`.repeat(node.level);
         rows += `<div class="row">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link ${node.isNamed ? 'named' : 'anonymous'}" href="#" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
         rowNumbers += `<div class="row">${i + 1}</div>`;
     }
