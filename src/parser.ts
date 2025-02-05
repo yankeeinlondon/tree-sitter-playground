@@ -8,7 +8,7 @@ const WASM_DIR = __dirname;
 // 语言对应的Parser实例
 const TS_PARSER = new Map<string, Parser>();
 
-class MiniNode {
+export class MiniNode {
     id: number;
     typeId: number;
     grammarId: number;
@@ -72,9 +72,10 @@ class MiniNode {
  * 将代码文本解析为语法树，并以扁平化形式将语法树输出位节点数组
  * @param text 代码文本
  * @param language 语言
+ * @param needAnonymousNodes 是否需要匿名节点
  * @returns 
  */
-export async function parserAndFlatAstNodes(text: string, language: string): Promise<MiniNode[]> {
+export async function parserAndFlatAstNodes(text: string, language: string, needAnonymousNodes: boolean = false): Promise<MiniNode[]> {
     // 获取Parser实例
     const parser = await getParser(language);
     // 解析代码文本生成语法树
@@ -83,17 +84,19 @@ export async function parserAndFlatAstNodes(text: string, language: string): Pro
     const walk = tree.walk();
     let walkIn = true;
     do {
-        if(!walkIn){
+        if (!walkIn) {
             // 向父节点游走
-            if(!walk.gotoParent()){
+            if (!walk.gotoParent()) {
                 break;
             }
-            if(!walk.gotoNextSibling()){
+            if (!walk.gotoNextSibling()) {
                 continue;
             }
         }
         walkIn = true;
-        list.push(new MiniNode(walk.currentNode, walk));
+        if (needAnonymousNodes || walk.nodeIsNamed) {
+            list.push(new MiniNode(walk.currentNode, walk));
+        }
         if (walk.gotoFirstChild()) {
             continue;
         }

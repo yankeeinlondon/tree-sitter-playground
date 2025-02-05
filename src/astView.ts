@@ -1,6 +1,31 @@
 import path from "path";
 import * as vscode from "vscode";
-import { parserAndFlatAstNodes } from "./parser";
+import { MiniNode, parserAndFlatAstNodes } from "./parser";
+/**
+ * webview状态数据类型
+ */
+interface AstWebviewState {
+    // 文档的uri地址
+    docUri: string;
+    // 扁平化的语法树节点数组
+    nodes: MiniNode[];
+    // 是否启用查询
+    enableQuery: boolean;
+    // 缓存的查询语句
+    queryText: string;
+    // 是否显示匿名节点
+    showAnonymousNodes: boolean;
+}
+
+/**
+ * 序列化的抽象语法树webview
+ */
+interface SerializeAstWebview {
+    // 序列化的webview面板
+    webviewPanel: vscode.WebviewPanel;
+    // 序列化的状态数据
+    state: AstWebviewState
+}
 
 /**
  * ASTWebviewManager 类，用于管理语法树 Webview 的创建和恢复
@@ -13,7 +38,7 @@ export class ASTWebviewManager {
      * 获取扩展上下文
      * @returns {vscode.ExtensionContext} 扩展上下文
      */
-    public static get extensionContext() {
+    public static get extensionContext(): vscode.ExtensionContext {
         return this._extensionContext;
     }
 
@@ -34,14 +59,15 @@ export class ASTWebviewManager {
     /**
      * 创建一个语法树的web视图
      * @param {vscode.TextDocument} doc vscode打开的文档
+     * @param {SerializeAstWebview} serializeWebview 可选，序列化的webview
      */
-    static async createAstWebview(doc: vscode.TextDocument, webview?: vscode.WebviewPanel) {
+    static async createAstWebview(doc: vscode.TextDocument, serializeWebview?: SerializeAstWebview) {
         let astWebview = this._cache.get(doc.uri.toString());
         if (astWebview) {
             astWebview.webviewPanel.reveal();
             return;
         }
-        astWebview = new AstWebview(doc, webview);
+        astWebview = new AstWebview(doc, serializeWebview);
         this._cache.set(doc.uri.toString(), astWebview);
     }
 
@@ -58,18 +84,17 @@ export class ASTWebviewManager {
 /**
  * AstWebviewSerializer 类，用于序列化和反序列化 Webview
  */
-export class AstWebviewSerializer implements vscode.WebviewPanelSerializer {
+export class AstWebviewSerializer implements vscode.WebviewPanelSerializer<AstWebviewState> {
     /**
      * 反序列化 Webview
      * @param {vscode.WebviewPanel} webviewPanel Webview 面板
      * @param {any} state 在 Webview 中持久化的状态
      */
-    async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+    async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: AstWebviewState) {
         //恢复 Webview 的内容，确保我们保留传入的 `webviewPanel` 并恢复我们需要的任何事件监听器
         try {
             const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(state.docUri));
-            ASTWebviewManager.createAstWebview(doc, webviewPanel);
-            webviewPanel.reveal();
+            ASTWebviewManager.createAstWebview(doc, { webviewPanel, state });
         } catch (error) {
             console.error(error);
         }
@@ -84,6 +109,8 @@ class AstWebview {
     // 打开的代码文档
     private readonly doc: vscode.TextDocument;
     private _webviewPanel: vscode.WebviewPanel;
+    private visible: boolean = false;
+    private state: AstWebviewState;
     public get webviewPanel() {
         return this._webviewPanel;
     }
@@ -91,12 +118,13 @@ class AstWebview {
     /**
      * 构造函数
      * @param {vscode.TextDocument} doc vscode打开的文档
-     * @param {vscode.WebviewPanel} webviewPanel Webview 面板
+     * @param {SerializeAstWebview} serializeAstWebview 序列化的Webview
      */
-    constructor(doc: vscode.TextDocument, webviewPanel?: vscode.WebviewPanel) {
+    constructor(doc: vscode.TextDocument, serializeAstWebview?: SerializeAstWebview) {
         this.doc = doc;
-        if (webviewPanel) {
-            this._webviewPanel = webviewPanel;
+        if (serializeAstWebview) {
+            this._webviewPanel = serializeAstWebview.webviewPanel;
+            this.state = serializeAstWebview.state;
         } else {
             // 创建一个新的webviewPanel
             const viewTitle = `${path.basename(doc.fileName)} - Ast`;
@@ -107,8 +135,15 @@ class AstWebview {
                 { enableFindWidget: true }
             );
             this._webviewPanel.webview.options = { enableScripts: true };
+            this.state = {
+                docUri: doc.uri.toString(),
+                nodes: [],
+                enableQuery: false,
+                queryText: '',
+                showAnonymousNodes: false,
+            }
         }
-
+        this.visible = this._webviewPanel.visible;
         // 监听文档的修改事件
         const changeDispose = vscode.workspace.onDidChangeTextDocument((event) => {
             const doc = event.document;
@@ -117,18 +152,32 @@ class AstWebview {
             }
         });
 
+        // 监听由webview传递的消息
+        this._webviewPanel.webview.onDidReceiveMessage((event) => {
+            const { command, value } = event;
+            switch (command) {
+                case 'showAnonymousNodes':
+                    this.state.showAnonymousNodes = value;
+                    this.refresh();
+                    break;
+                default:
+
+            }
+        });
+
         // 监听webview的状态变化
-        this._webviewPanel.onDidChangeViewState((event)=>{
-            if(this._webviewPanel.visible){
+        this._webviewPanel.onDidChangeViewState((event) => {
+            if (!this.visible && this._webviewPanel.visible) {
                 // 刷新视图内容
                 this.refresh();
                 let viewColumn = vscode.ViewColumn.One;
-                if(this._webviewPanel.viewColumn === vscode.ViewColumn.One){
+                if (this._webviewPanel.viewColumn === vscode.ViewColumn.One) {
                     viewColumn = vscode.ViewColumn.Beside;
                 }
                 // 将doc对应的文本编辑器设置为可见状态
                 vscode.window.showTextDocument(this.doc, { preserveFocus: true, preview: false, viewColumn });
             }
+            this.visible = this._webviewPanel.visible;
         });
 
         // webview销毁事件
@@ -147,7 +196,7 @@ class AstWebview {
      * @param {...string} paths 路径
      * @returns {vscode.Uri} Webview URI
      */
-    private asWebviewUri(...paths: string[]) {
+    private asWebviewUri(...paths: string[]): vscode.Uri {
         const path = vscode.Uri.joinPath(ASTWebviewManager.extensionContext.extensionUri, "resources", ...paths);
         return this._webviewPanel.webview.asWebviewUri(path);
     }
@@ -157,11 +206,10 @@ class AstWebview {
      */
     async refresh() {
         const text = this.doc.getText();
-        const nodes = await parserAndFlatAstNodes(text, this.doc.languageId);
+        this.state.nodes = await parserAndFlatAstNodes(text, this.doc.languageId, this.state.showAnonymousNodes);
         this._webviewPanel.webview.postMessage({
-            command: "update",
-            docUri: this.doc.uri.toString(),
-            nodes: JSON.stringify(nodes),
+            command: "refresh",
+            state: JSON.stringify(this.state)
         });
     }
 
@@ -169,7 +217,7 @@ class AstWebview {
      * 获取 HTML 内容
      * @returns {string} HTML 内容
      */
-    private getHtml() {
+    private getHtml(): string {
         const styleVSCodeUri = this.asWebviewUri("css", "vscode.css");
         const astEditorUri = this.asWebviewUri("css", "astEditor.css");
         const scriptUri = this.asWebviewUri("js", "astView.js");
@@ -223,7 +271,7 @@ class AstWebview {
  * 生成随机字符串
  * @returns {string} 随机字符串
  */
-function getNonce() {
+function getNonce(): string {
     let text = "";
     const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 32; i++) {

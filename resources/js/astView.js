@@ -1,4 +1,5 @@
 const queryContainer = document.getElementById('query-container');
+const queryTextarea = document.getElementById('query-input');
 const showAnonymousCheckbox = document.getElementById('show-anonymous-checkbox');
 const enableQueryCheckbox = document.getElementById('enabled-query-checkbox');
 
@@ -7,16 +8,31 @@ class GlobalState {
     docUri = "";
     nodes = [];
     enableQuery = false;
+    queryText = '';
     showAnonymousNodes = false;
     constructor(state = {}) {
         Object.assign(this, state);
+        this.setEnableQuery(this.enableQuery);
+        this.setShowAnonymousNodes(this.showAnonymousNodes);
+    }
+
+    setState(state) {
+        Object.assign(this, state);
+        vscode.setState(this);
+
+        showAnonymousCheckbox.checked = this.showAnonymousNodes;
+        enableQueryCheckbox.checked = this.enableQuery;
+        queryTextarea.value = this.queryText;
+        queryContainer.style.display = this.enableQuery ? "block" : "none";
+
+        updateTree(this.nodes);
     }
 
     setDocUri(value) {
         this.docUri = value;
         vscode.setState(this);
     }
-    
+
     setNodes(value = []) {
         this.nodes = value;
         vscode.setState(this);
@@ -27,7 +43,12 @@ class GlobalState {
         this.enableQuery = value;
         vscode.setState(this);
         enableQueryCheckbox.checked = value;
-        queryContainer.style.display = this.enableQuery  ? "block" : "none";
+        queryContainer.style.display = this.enableQuery ? "block" : "none";
+    }
+
+    setQueryText(value){
+        this.queryText = value;
+        vscode.setState(this);
     }
 
     setShowAnonymousNodes(value) {
@@ -39,30 +60,16 @@ class GlobalState {
 
 (function () {
     const globalState = new GlobalState();// 每次重新加载页面时尝试恢复状态中的数据
-    const state = vscode.getState();
-    
-    console.log("GLOBAL STATE", state);
-    if (state) {
-        state.docUri && globalState.setDocUri(state.docUri);
-        state.nodes && globalState.setNodes(state.nodes);
-        globalState.setEnableQuery(state.enableQuery);
-        globalState.setShowAnonymousNodes(state.showAnonymousNodes);
-    }
-
-    // 发送一个消息
-    vscode.postMessage({
-        command: 'alert',
-        text: '🐛  on line '
-    });
 
     // 添加接收消息的监听
     window.addEventListener('message', event => {
-        const message = event.data; // The JSON data our extension sent
-        switch (message.command) {
-            case 'update':
-                const { docUri, nodes } = message;
+        const { command, state } = event.data;
+        switch (command) {
+            case 'refresh':
+                /* const { docUri, nodes } = state;
                 globalState.setDocUri(docUri);
-                globalState.setNodes(nodes);
+                globalState.setNodes(nodes); */
+                globalState.setState(JSON.parse(state));
                 break;
             case 'scroll':
                 // TODO 随编辑器滚动
@@ -74,10 +81,15 @@ class GlobalState {
     });
 
     showAnonymousCheckbox.addEventListener('change', (that, event) => {
-        globalState.setShowAnonymousNodes(showAnonymousCheckbox.checked);
+        const checked = showAnonymousCheckbox.checked;
+        vscode.postMessage({ command: 'showAnonymousNodes', value: checked });
+        globalState.setShowAnonymousNodes(checked);
     });
     enableQueryCheckbox.addEventListener('change', (that, event) => {
         globalState.setEnableQuery(enableQueryCheckbox.checked);
+    });
+    queryTextarea.addEventListener('change', (that, event) => {
+        globalState.setQueryText(queryTextarea.value);
     });
 })();
 
@@ -86,7 +98,10 @@ class GlobalState {
  * @param {[*]} nodes 
  */
 function updateTree(nodes) {
-    const nodeArray = JSON.parse(nodes);
+    if (!nodes || nodes.length <= 0) {
+        return;
+    }
+    const nodeArray = typeof nodes === 'string' ? JSON.parse(nodes) : nodes;
     const htmls = treeNodeToHtml(nodeArray);
     const rowContianer = document.getElementById('output-container');
     const rowNumberContainer = document.getElementById('row-number-container');

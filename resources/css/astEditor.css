@@ -329,10 +329,12 @@ span.indent {
 
 #output-container a.node-link.anonymous:before {
   content: '"';
+  color: #5C6370;
 }
 
 #output-container a.node-link.anonymous:after {
   content: '"';
+  color: #5C6370;
 }
 
 #output-container a.node-link.error {
