@@ -15,6 +15,8 @@ interface AstWebviewState {
     queryText: string;
     // 是否显示匿名节点
     showAnonymousNodes: boolean;
+    // 是否启用编辑器同步功能
+    enableEditorSync: boolean;
 }
 
 /**
@@ -141,24 +143,21 @@ class AstWebview {
                 enableQuery: false,
                 queryText: '',
                 showAnonymousNodes: false,
+                enableEditorSync: true,
             }
         }
         this.visible = this._webviewPanel.visible;
-        // 监听文档的修改事件
-        const changeDispose = vscode.workspace.onDidChangeTextDocument((event) => {
-            const doc = event.document;
-            if (doc.uri.toString() === doc.uri.toString()) {
-                this.refresh();
-            }
-        });
 
         // 监听由webview传递的消息
-        this._webviewPanel.webview.onDidReceiveMessage((event) => {
+        const receiveMessageDispose = this._webviewPanel.webview.onDidReceiveMessage((event) => {
             const { command, value } = event;
             switch (command) {
                 case 'showAnonymousNodes':
                     this.state.showAnonymousNodes = value;
                     this.refresh();
+                    break;
+                case 'enableEditorSync':
+                    this.state.enableEditorSync = value;
                     break;
                 default:
 
@@ -166,7 +165,7 @@ class AstWebview {
         });
 
         // 监听webview的状态变化
-        this._webviewPanel.onDidChangeViewState((event) => {
+        const webviewSateChangeDispose = this._webviewPanel.onDidChangeViewState((event) => {
             if (!this.visible && this._webviewPanel.visible) {
                 // 刷新视图内容
                 this.refresh();
@@ -180,9 +179,30 @@ class AstWebview {
             this.visible = this._webviewPanel.visible;
         });
 
+        // 监听文档的修改事件
+        const textDocChangeDispose = vscode.workspace.onDidChangeTextDocument((event) => {
+            const doc = event.document;
+            if (doc.uri.toString() === doc.uri.toString()) {
+                this.refresh();
+            }
+        });
+
+        // 监听文本编辑器的滚动事件
+        vscode.window.onDidChangeTextEditorVisibleRanges(({textEditor, visibleRanges})=>{
+            const eventDoc = textEditor.document;
+            if(this.state.enableEditorSync && doc.uri.toString() === eventDoc.uri.toString()){
+                this._webviewPanel.webview.postMessage({
+                    command: "scroll",
+                    data: JSON.stringify(visibleRanges[0].start)
+                });
+            }
+        });
+
         // webview销毁事件
         this._webviewPanel.onDidDispose(() => {
-            changeDispose.dispose();
+            receiveMessageDispose.dispose();
+            webviewSateChangeDispose.dispose();
+            textDocChangeDispose.dispose();
             ASTWebviewManager.deleteCache(doc.uri);
         });
 
@@ -209,7 +229,7 @@ class AstWebview {
         this.state.nodes = await parserAndFlatAstNodes(text, this.doc.languageId, this.state.showAnonymousNodes);
         this._webviewPanel.webview.postMessage({
             command: "refresh",
-            state: JSON.stringify(this.state)
+            data: JSON.stringify(this.state)
         });
     }
 
@@ -242,6 +262,10 @@ class AstWebview {
                     <div class="tool-item">
                         <input type="checkbox" id="show-anonymous-checkbox" ></input>
                         <label for="show-anonymous-checkbox">显示匿名节点</label>
+                    </div>
+                    <div class="tool-item">
+                        <input type="checkbox" id="editor-sync-checkbox" ></input>
+                        <label for="editor-sync-checkbox">编辑器联动</label>
                     </div>
                     <div class="tool-item">
                         <input type="checkbox" id="enabled-query-checkbox" ></input>

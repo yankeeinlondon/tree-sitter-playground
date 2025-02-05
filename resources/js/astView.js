@@ -2,6 +2,7 @@ const queryContainer = document.getElementById('query-container');
 const queryTextarea = document.getElementById('query-input');
 const showAnonymousCheckbox = document.getElementById('show-anonymous-checkbox');
 const enableQueryCheckbox = document.getElementById('enabled-query-checkbox');
+const editorSyncCheckbox = document.getElementById('editor-sync-checkbox');
 
 const vscode = acquireVsCodeApi();
 class GlobalState {
@@ -10,11 +11,7 @@ class GlobalState {
     enableQuery = false;
     queryText = '';
     showAnonymousNodes = false;
-    constructor(state = {}) {
-        Object.assign(this, state);
-        this.setEnableQuery(this.enableQuery);
-        this.setShowAnonymousNodes(this.showAnonymousNodes);
-    }
+    enableEditorSync = true;
 
     setState(state) {
         Object.assign(this, state);
@@ -22,6 +19,7 @@ class GlobalState {
 
         showAnonymousCheckbox.checked = this.showAnonymousNodes;
         enableQueryCheckbox.checked = this.enableQuery;
+        editorSyncCheckbox.checked = this.enableEditorSync;
         queryTextarea.value = this.queryText;
         queryContainer.style.display = this.enableQuery ? "block" : "none";
 
@@ -42,11 +40,10 @@ class GlobalState {
     setEnableQuery(value) {
         this.enableQuery = value;
         vscode.setState(this);
-        enableQueryCheckbox.checked = value;
         queryContainer.style.display = this.enableQuery ? "block" : "none";
     }
 
-    setQueryText(value){
+    setQueryText(value) {
         this.queryText = value;
         vscode.setState(this);
     }
@@ -54,7 +51,10 @@ class GlobalState {
     setShowAnonymousNodes(value) {
         this.showAnonymousNodes = value;
         vscode.setState(this);
-        showAnonymousCheckbox.checked = value;
+    }
+    setEnableEditorSync(value) {
+        this.enableEditorSync = value;
+        vscode.setState(this);
     }
 }
 
@@ -63,16 +63,19 @@ class GlobalState {
 
     // 添加接收消息的监听
     window.addEventListener('message', event => {
-        const { command, state } = event.data;
+        const { command, data } = event.data;
         switch (command) {
             case 'refresh':
-                /* const { docUri, nodes } = state;
-                globalState.setDocUri(docUri);
-                globalState.setNodes(nodes); */
-                globalState.setState(JSON.parse(state));
+                globalState.setState(JSON.parse(data));
                 break;
             case 'scroll':
-                // TODO 随编辑器滚动
+                // 随编辑器滚动
+                const { line } = JSON.parse(data);
+                const items = document.getElementsByClassName(`row-${line}`);
+                items && items[0].scrollIntoView({
+                    behavior: 'smooth', // 平滑滚动
+                    block: 'start' // 元素顶部对齐视口顶部
+                })
                 break;
             case 'goto':
                 // 定位到指定节点
@@ -90,6 +93,11 @@ class GlobalState {
     });
     queryTextarea.addEventListener('change', (that, event) => {
         globalState.setQueryText(queryTextarea.value);
+    });
+    editorSyncCheckbox.addEventListener('change', (that, event) => {
+        const checked = editorSyncCheckbox.checked;
+        vscode.postMessage({ command: 'enableEditorSync', value: checked });
+        globalState.setEnableEditorSync(editorSyncCheckbox.checked);
     });
 })();
 
@@ -118,7 +126,7 @@ function treeNodeToHtml(nodes) {
         // 设置缩进
         const indentHtml = `<span class="indent">&nbsp;&nbsp;</span>`.repeat(node.level);
         rows += `<div class="row">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link ${node.isNamed ? 'named' : 'anonymous'}" href="#" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
-        rowNumbers += `<div class="row">${i + 1}</div>`;
+        rowNumbers += `<div class="row row-${startRow}" id="rc-${startRow}-${startColumn}">${i + 1}</div>`;
     }
     return { rows, rowNumbers };
 }
