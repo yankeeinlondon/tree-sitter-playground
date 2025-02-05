@@ -72,13 +72,14 @@ class GlobalState {
                 // 随编辑器滚动
                 const { line } = JSON.parse(data);
                 const items = document.getElementsByClassName(`row-${line}`);
-                items && items[0].scrollIntoView({
+                (items && items.length > 0) && items[0].scrollIntoView({
                     behavior: 'smooth', // 平滑滚动
                     block: 'start' // 元素顶部对齐视口顶部
                 })
                 break;
             case 'goto':
                 // 定位到指定节点
+                const { startPosition, endPosition } = JSON.parse(data);
                 break;
         }
     });
@@ -115,6 +116,12 @@ function updateTree(nodes) {
     const rowNumberContainer = document.getElementById('row-number-container');
     rowContianer.innerHTML = htmls.rows;
     rowNumberContainer.innerHTML = htmls.rowNumbers;
+    // 监听节点元素点击事件
+    rowContianer.addEventListener('mouseover', (event) => {
+        if (event.target.classList.contains('node-link')) {
+            console.log('按钮被点击了！', event.target);
+        }
+    });
 }
 
 function treeNodeToHtml(nodes) {
@@ -125,8 +132,12 @@ function treeNodeToHtml(nodes) {
         const { row: endRow, column: endColumn } = node.endPosition;
         // 设置缩进
         const indentHtml = `<span class="indent">&nbsp;&nbsp;</span>`.repeat(node.level);
-        rows += `<div class="row">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link ${node.isNamed ? 'named' : 'anonymous'}" href="#" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
+        rows += `<div class="row row-id-${node.id}" id="${node.id}">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link a-${node.id} ${node.isNamed ? 'named' : 'anonymous'}" href="javascript:void(0);" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
         rowNumbers += `<div class="row row-${startRow}" id="rc-${startRow}-${startColumn}">${i + 1}</div>`;
     }
     return { rows, rowNumbers };
+}
+
+function gotoEditor(){
+    console.log(this);
 }

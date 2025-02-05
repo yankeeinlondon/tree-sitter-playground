@@ -188,7 +188,7 @@ class AstWebview {
         });
 
         // 监听文本编辑器的滚动事件
-        vscode.window.onDidChangeTextEditorVisibleRanges(({textEditor, visibleRanges})=>{
+        const changeVisibleRangesDispose = vscode.window.onDidChangeTextEditorVisibleRanges(({textEditor, visibleRanges})=>{
             const eventDoc = textEditor.document;
             if(this.state.enableEditorSync && this.visible && doc.uri.toString() === eventDoc.uri.toString()){
                 this._webviewPanel.webview.postMessage({
@@ -198,11 +198,29 @@ class AstWebview {
             }
         });
 
+        // 监听编辑器的点击和文本选中事件
+        const changeSelectionDispose= vscode.window.onDidChangeTextEditorSelection(({textEditor, selections})=>{
+            const eventDoc = textEditor.document;
+            if(this.state.enableEditorSync && this.visible && doc.uri.toString() === eventDoc.uri.toString()){
+                const {anchor, active, isReversed, isEmpty} = selections[0]
+                const startPosition = isReversed ? active : anchor;
+                const endPosition = isReversed ? anchor : active;
+
+                // TODO 实现编辑器定位到抽象语法树
+                /* this._webviewPanel.webview.postMessage({
+                    command: "goto",
+                    data: JSON.stringify({startPosition, endPosition: isEmpty ? undefined : endPosition})
+                }); */
+            }
+        });
+
         // webview销毁事件
         this._webviewPanel.onDidDispose(() => {
             receiveMessageDispose.dispose();
             webviewSateChangeDispose.dispose();
             textDocChangeDispose.dispose();
+            changeVisibleRangesDispose.dispose();
+            changeSelectionDispose.dispose();
             ASTWebviewManager.deleteCache(doc.uri);
         });
 
