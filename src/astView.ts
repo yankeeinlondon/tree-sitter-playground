@@ -190,7 +190,7 @@ class AstWebview {
         // 监听文本编辑器的滚动事件
         vscode.window.onDidChangeTextEditorVisibleRanges(({textEditor, visibleRanges})=>{
             const eventDoc = textEditor.document;
-            if(this.state.enableEditorSync && doc.uri.toString() === eventDoc.uri.toString()){
+            if(this.state.enableEditorSync && this.visible && doc.uri.toString() === eventDoc.uri.toString()){
                 this._webviewPanel.webview.postMessage({
                     command: "scroll",
                     data: JSON.stringify(visibleRanges[0].start)
