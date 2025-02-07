@@ -317,6 +317,14 @@ span.indent {
 
 #output-container a {
   text-decoration: none;
+  border: 1px solid #FFFFFF00;
+}
+
+.node-link-selected {
+    border: 1px solid gray !important;
+    border-radius: 4px;
+    text-align: center;
+    /* padding-left: 6px; */
 }
 
 #output-container a:hover {

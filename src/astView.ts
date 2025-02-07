@@ -1,7 +1,7 @@
 import path from "path";
 import * as vscode from "vscode";
-import { Tree } from "web-tree-sitter";
-import { editTree, handlerSyntaxNodeByRecursion, MiniNode, parserAst } from "./parser";
+import Parser, { Tree } from "web-tree-sitter";
+import { EditRange, editTree, handlerSyntaxNodeByRecursion, MiniNode, parserAst } from "./parser";
 /**
  * webview状态数据类型
  */
@@ -175,9 +175,22 @@ class AstWebview {
                     this.state.enableEditorSync = value;
                     break;
                 case "selectEditorText":
-                    const { startIndex, endIndex } = value;
-                    const selectNode = this.astTree.rootNode.descendantForIndex(Number(startIndex), Number(endIndex));
-                    // TODO 实现选中编辑器内容
+                    const { startIndex, endIndex,isClick } = value;
+                    if (isClick || (this.state.enableEditorSync && this._webviewPanel.active)) {
+                        // 获取当前活动的文本编辑器
+                        const editor = vscode.window.visibleTextEditors.find(
+                            (editor) => editor.document.uri.toString() === this.doc.uri.toString()
+                        );
+                        
+                        if (editor) {
+                            const start = this.doc.positionAt(startIndex);
+                            const end = this.doc.positionAt(endIndex);
+                            // 设置编辑器的选中内容
+                            editor.selection = new vscode.Selection(start, end);
+                            // 滚动到选中的内容
+                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                        }
+                    }
                     break;
                 default:
             }
@@ -214,8 +227,11 @@ class AstWebview {
         // 监听文本编辑器的滚动事件
         const changeVisibleRangesDispose = vscode.window.onDidChangeTextEditorVisibleRanges(
             ({ textEditor, visibleRanges }) => {
-                const eventDoc = textEditor.document;
+                // 使用此方式同步滚动语法树web视图的体验不太好，暂时注释该代码
+                /* const eventDoc = textEditor.document;
+                const activeEditor = vscode.window.activeTextEditor;
                 if (
+                    activeEditor?.document.uri.toString() === eventDoc.uri.toString() &&
                     this.state.enableEditorSync &&
                     this.visible &&
                     this.doc.uri.toString() === eventDoc.uri.toString()
@@ -224,23 +240,41 @@ class AstWebview {
                         command: "scroll",
                         data: JSON.stringify(visibleRanges[0].start),
                     });
-                }
+                } */
             }
         );
 
         // 监听编辑器的点击和文本选中事件
         const changeSelectionDispose = vscode.window.onDidChangeTextEditorSelection(({ textEditor, selections }) => {
             const eventDoc = textEditor.document;
-            if (this.state.enableEditorSync && this.visible && this.doc.uri.toString() === eventDoc.uri.toString()) {
+            const activeEditor = vscode.window.activeTextEditor;
+            if (
+                this.state.enableEditorSync &&
+                activeEditor?.document.uri.toString() === eventDoc.uri.toString() &&
+                this.visible &&
+                this.doc.uri.toString() === eventDoc.uri.toString()
+            ) {
                 const { anchor, active, isReversed, isEmpty } = selections[0];
-                const startPosition = isReversed ? active : anchor;
-                const endPosition = isReversed ? anchor : active;
+                let startPosition: Parser.Point, endPosition: Parser.Point;
+                if (isEmpty) {
+                    const range = eventDoc.getWordRangeAtPosition(anchor);
+                    if (range) {
+                        startPosition = EditRange.asTSPoint(range.start);
+                        endPosition = EditRange.asTSPoint(range.end);
+                    }
+                } else {
+                    startPosition = EditRange.asTSPoint(isReversed ? active : anchor);
+                    endPosition = EditRange.asTSPoint(isReversed ? anchor : active);
+                }
 
-                // TODO 实现编辑器定位到抽象语法树
-                /* this._webviewPanel.webview.postMessage({
-            command: "goto",
-            data: JSON.stringify({startPosition, endPosition: isEmpty ? undefined : endPosition})
-        }); */
+                // @ts-ignore
+                if (startPosition && endPosition) {
+                    const gotoNode = this.astTree.rootNode.descendantForPosition(startPosition, endPosition);
+                    this._webviewPanel.webview.postMessage({
+                        command: "gotoNode",
+                        data: JSON.stringify(new MiniNode(gotoNode)),
+                    });
+                }
             }
         });
 
@@ -314,7 +348,7 @@ class AstWebview {
                     </div>
                     <div class="tool-item">
                         <input type="checkbox" id="editor-sync-checkbox" ></input>
-                        <label for="editor-sync-checkbox">编辑器联动</label>
+                        <label for="editor-sync-checkbox">映射节点</label>
                     </div>
                     <div class="tool-item">
                         <input type="checkbox" id="enabled-query-checkbox" ></input>

@@ -86,7 +86,7 @@ export class MiniNode {
      * @param node Tree-sitter的语法节点
      * @param walk Tree-sitter的游标对象
      */
-    constructor(node: SyntaxNode, walk: TreeCursor) {
+    constructor(node: SyntaxNode, walk?: TreeCursor) {
         this.id = node.id;
         this.typeId = node.typeId;
         this.grammarId = node.grammarId;
@@ -109,9 +109,9 @@ export class MiniNode {
         this.childCount = node.childCount;
         this.namedChildCount = node.namedChildCount;
         this.descendantCount = node.descendantCount;
-        this.level = walk.currentDepth || 0;
-        this.fieldId = walk.currentFieldId || -1;
-        this.fieldName = walk.currentFieldName || "";
+        this.level = walk?.currentDepth || 0;
+        this.fieldId = walk?.currentFieldId || -1;
+        this.fieldName = walk?.currentFieldName || "";
     }
 }
 

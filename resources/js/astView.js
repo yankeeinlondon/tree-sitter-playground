@@ -112,9 +112,17 @@ class GlobalState {
                         block: "start", // 元素顶部对齐视口顶部
                     });
                 break;
-            case "goto":
+            case "gotoNode":
                 // 定位到指定节点
-                const { startPosition, endPosition } = JSON.parse(data);
+                const { id } = JSON.parse(data);
+                const element = document.getElementById(id);
+                if (element) {
+                    document.querySelectorAll("a.node-link-selected").forEach((item) => {
+                        item.classList.remove("node-link-selected");
+                    });
+                    element.classList.add("node-link-selected");
+                    element.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
                 break;
         }
     });
@@ -151,11 +159,20 @@ function updateTree(nodes) {
     const rowNumberContainer = document.getElementById("row-number-container");
     rowContianer.innerHTML = htmls.rows;
     rowNumberContainer.innerHTML = htmls.rowNumbers;
-    // 监听节点元素点击事件
+    // 监听节点元素鼠标悬浮事件
     rowContianer.addEventListener("mouseover", (event) => {
         const element = event.target;
         if (element.classList.contains("node-link")) {
             vscode.postMessage({ command: "selectEditorText", value: JSON.parse(JSON.stringify(element.dataset)) });
+        }
+    });
+    // 监听节点元素鼠标点击事件
+    rowContianer.addEventListener("click", (event) => {
+        const element = event.target;
+        if (element.classList.contains("node-link")) {
+            const data = element.dataset;
+            data['isClick'] = true;
+            vscode.postMessage({ command: "selectEditorText", value: JSON.parse(JSON.stringify(data)) });
         }
     });
 }
@@ -174,17 +191,17 @@ function treeNodeToHtml(nodes) {
         const { row: endRow, column: endColumn } = node.endPosition;
         // 设置缩进
         const indentHtml = `<span class="indent">&nbsp;&nbsp;</span>`.repeat(node.level);
-        rows += ``
-        +`<div class="row row-id-${node.id}" id="${node.id}">
+        rows +=
+            `` +
+            `<div class="row row-id-${node.id}">
             ${indentHtml}${node.fieldName && node.fieldName + ": "}
             <a class="node-link a-${node.id} ${node.isNamed ? "named" : "anonymous"}" 
+                id="${node.id}"
                 href="javascript:void(0);" 
                 data-id="${node.id}"
                 data-range="${startRow},${startColumn},${endRow},${endColumn}" 
                 data-start-index="${node.startIndex}" 
-                data-end-index="${node.endIndex}">
-                ${node.type}
-            </a>
+                data-end-index="${node.endIndex}">${node.type}</a>
             <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span>
         </div>`;
         rowNumbers += `<div class="row row-${startRow}" id="rc-${startRow}-${startColumn}">${i + 1}</div>`;
