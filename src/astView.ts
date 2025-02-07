@@ -176,7 +176,8 @@ class AstWebview {
                     break;
                 case "selectEditorText":
                     const { startIndex, endIndex } = value;
-
+                    const selectNode = this.astTree.rootNode.descendantForIndex(Number(startIndex), Number(endIndex));
+                    // TODO 实现选中编辑器内容
                     break;
                 default:
             }

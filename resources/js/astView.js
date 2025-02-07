@@ -1,8 +1,8 @@
-const queryContainer = document.getElementById('query-container');
-const queryTextarea = document.getElementById('query-input');
-const showAnonymousCheckbox = document.getElementById('show-anonymous-checkbox');
-const enableQueryCheckbox = document.getElementById('enabled-query-checkbox');
-const editorSyncCheckbox = document.getElementById('editor-sync-checkbox');
+const queryContainer = document.getElementById("query-container");
+const queryTextarea = document.getElementById("query-input");
+const showAnonymousCheckbox = document.getElementById("show-anonymous-checkbox");
+const enableQueryCheckbox = document.getElementById("enabled-query-checkbox");
+const editorSyncCheckbox = document.getElementById("editor-sync-checkbox");
 
 const vscode = acquireVsCodeApi();
 
@@ -13,7 +13,7 @@ class GlobalState {
     docUri = "";
     nodes = [];
     enableQuery = false;
-    queryText = '';
+    queryText = "";
     showAnonymousNodes = false;
     enableEditorSync = true;
 
@@ -92,45 +92,47 @@ class GlobalState {
 }
 
 (function () {
-    const globalState = new GlobalState();// 每次重新加载页面时尝试恢复状态中的数据
+    const globalState = new GlobalState(); // 每次重新加载页面时尝试恢复状态中的数据
 
     // 添加接收消息的监听
-    window.addEventListener('message', event => {
+    window.addEventListener("message", (event) => {
         const { command, data } = event.data;
         switch (command) {
-            case 'refresh':
+            case "refresh":
                 globalState.setState(JSON.parse(data));
                 break;
-            case 'scroll':
+            case "scroll":
                 // 随编辑器滚动
                 const { line } = JSON.parse(data);
                 const items = document.getElementsByClassName(`row-${line}`);
-                (items && items.length > 0) && items[0].scrollIntoView({
-                    behavior: 'smooth', // 平滑滚动
-                    block: 'start' // 元素顶部对齐视口顶部
-                });
+                items &&
+                    items.length > 0 &&
+                    items[0].scrollIntoView({
+                        behavior: "smooth", // 平滑滚动
+                        block: "start", // 元素顶部对齐视口顶部
+                    });
                 break;
-            case 'goto':
+            case "goto":
                 // 定位到指定节点
                 const { startPosition, endPosition } = JSON.parse(data);
                 break;
         }
     });
 
-    showAnonymousCheckbox.addEventListener('change', (that, event) => {
+    showAnonymousCheckbox.addEventListener("change", (that, event) => {
         const checked = showAnonymousCheckbox.checked;
-        vscode.postMessage({ command: 'showAnonymousNodes', value: checked });
+        vscode.postMessage({ command: "showAnonymousNodes", value: checked });
         globalState.setShowAnonymousNodes(checked);
     });
-    enableQueryCheckbox.addEventListener('change', (that, event) => {
+    enableQueryCheckbox.addEventListener("change", (that, event) => {
         globalState.setEnableQuery(enableQueryCheckbox.checked);
     });
-    queryTextarea.addEventListener('change', (that, event) => {
+    queryTextarea.addEventListener("change", (that, event) => {
         globalState.setQueryText(queryTextarea.value);
     });
-    editorSyncCheckbox.addEventListener('change', (that, event) => {
+    editorSyncCheckbox.addEventListener("change", (that, event) => {
         const checked = editorSyncCheckbox.checked;
-        vscode.postMessage({ command: 'enableEditorSync', value: checked });
+        vscode.postMessage({ command: "enableEditorSync", value: checked });
         globalState.setEnableEditorSync(editorSyncCheckbox.checked);
     });
 })();
@@ -143,17 +145,17 @@ function updateTree(nodes) {
     if (!nodes || nodes.length <= 0) {
         return;
     }
-    const nodeArray = typeof nodes === 'string' ? JSON.parse(nodes) : nodes;
+    const nodeArray = typeof nodes === "string" ? JSON.parse(nodes) : nodes;
     const htmls = treeNodeToHtml(nodeArray);
-    const rowContianer = document.getElementById('output-container');
-    const rowNumberContainer = document.getElementById('row-number-container');
+    const rowContianer = document.getElementById("output-container");
+    const rowNumberContainer = document.getElementById("row-number-container");
     rowContianer.innerHTML = htmls.rows;
     rowNumberContainer.innerHTML = htmls.rowNumbers;
     // 监听节点元素点击事件
-    rowContianer.addEventListener('mouseover', (event) => {
+    rowContianer.addEventListener("mouseover", (event) => {
         const element = event.target;
-        if (element.classList.contains('node-link')) {
-            vscode.postMessage({ command: 'selectEditorText', value: element.dataset });
+        if (element.classList.contains("node-link")) {
+            vscode.postMessage({ command: "selectEditorText", value: JSON.parse(JSON.stringify(element.dataset)) });
         }
     });
 }
@@ -164,14 +166,27 @@ function updateTree(nodes) {
  * @returns {Object} 包含HTML字符串的对象
  */
 function treeNodeToHtml(nodes) {
-    let rows = "", rowNumbers = "";
+    let rows = "",
+        rowNumbers = "";
     for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         const { row: startRow, column: startColumn } = node.startPosition;
         const { row: endRow, column: endColumn } = node.endPosition;
         // 设置缩进
         const indentHtml = `<span class="indent">&nbsp;&nbsp;</span>`.repeat(node.level);
-        rows += `<div class="row row-id-${node.id}" id="${node.id}">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link a-${node.id} ${node.isNamed ? 'named' : 'anonymous'}" href="javascript:void(0);" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}" data-startIndex="${node.startIndex}" data-endIndex="${node.endIndex}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
+        rows += ``
+        +`<div class="row row-id-${node.id}" id="${node.id}">
+            ${indentHtml}${node.fieldName && node.fieldName + ": "}
+            <a class="node-link a-${node.id} ${node.isNamed ? "named" : "anonymous"}" 
+                href="javascript:void(0);" 
+                data-id="${node.id}"
+                data-range="${startRow},${startColumn},${endRow},${endColumn}" 
+                data-start-index="${node.startIndex}" 
+                data-end-index="${node.endIndex}">
+                ${node.type}
+            </a>
+            <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span>
+        </div>`;
         rowNumbers += `<div class="row row-${startRow}" id="rc-${startRow}-${startColumn}">${i + 1}</div>`;
     }
     return { rows, rowNumbers };
@@ -180,6 +195,6 @@ function treeNodeToHtml(nodes) {
 /**
  * 定位到编辑器
  */
-function gotoEditor(){
+function gotoEditor() {
     console.log(this);
 }
