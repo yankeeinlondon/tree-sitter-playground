@@ -1,13 +1,57 @@
 import fs from "fs";
 import path from "path";
 import * as vscode from "vscode";
-import Parser, { Point, SyntaxNode, TreeCursor } from "web-tree-sitter";
+import Parser, { Edit, Point, SyntaxNode, TreeCursor } from "web-tree-sitter";
 
 // wasm文件目录
 const WASM_DIR = __dirname;
 // 语言对应的Parser实例
 const TS_PARSER = new Map<string, Parser>();
 
+/**
+ * 表示代码编辑范围，用于更新语法树
+ */
+export class EditRange implements Edit {
+    startIndex: number;
+    oldEndIndex: number;
+    newEndIndex: number;
+
+    startPosition: Parser.Point;
+    oldEndPosition: Parser.Point;
+    newEndPosition: Parser.Point;
+
+    /**
+     * 构造函数，根据VSCode的文本变化事件创建编辑范围
+     * @param editChangeEvent VSCode文本变化事件
+     * @param document VSCode文档对象
+     */
+    constructor(editChangeEvent: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument) {
+        const { range, rangeOffset, rangeLength, text } = editChangeEvent;
+        const isDelete = !text;
+
+        this.startIndex = document.offsetAt(range.start);
+        this.oldEndIndex = document.offsetAt(range.end);
+        this.newEndIndex = isDelete ? this.startIndex : rangeOffset + text.length;
+
+        this.startPosition = EditRange.asTSPoint(range.start);
+        this.oldEndPosition = EditRange.asTSPoint(range.end);
+        this.newEndPosition = EditRange.asTSPoint(document.positionAt(this.newEndIndex));
+    }
+
+    /**
+     * 将VSCode的Position转换为Tree-sitter的Point
+     * @param position VSCode的Position对象
+     * @returns Tree-sitter的Point对象
+     */
+    static asTSPoint(position: vscode.Position): Parser.Point {
+        const { line, character } = position;
+        return { row: line, column: character };
+    }
+}
+
+/**
+ * 表示语法树的简化节点，包含节点的基本信息
+ */
 export class MiniNode {
     id: number;
     typeId: number;
@@ -36,6 +80,12 @@ export class MiniNode {
     level: number;
     fieldId: number;
     fieldName?: string;
+
+    /**
+     * 构造函数，根据Tree-sitter的语法节点创建简化节点
+     * @param node Tree-sitter的语法节点
+     * @param walk Tree-sitter的游标对象
+     */
     constructor(node: SyntaxNode, walk: TreeCursor) {
         this.id = node.id;
         this.typeId = node.typeId;
@@ -61,21 +111,22 @@ export class MiniNode {
         this.descendantCount = node.descendantCount;
         this.level = walk.currentDepth || 0;
         this.fieldId = walk.currentFieldId || -1;
-        this.fieldName = walk.currentFieldName || '';
-
-        // this.children = node.children.map(child => new MiniNode(child, this.level));
-        // this.namedChildren = node.namedChildren.map(child => new MiniNode(child, this.level));
+        this.fieldName = walk.currentFieldName || "";
     }
 }
 
 /**
- * 将代码文本解析为语法树，并以扁平化形式将语法树输出位节点数组
+ * 将代码文本解析为语法树，并以扁平化形式将语法树输出为节点数组
  * @param text 代码文本
  * @param language 语言
  * @param needAnonymousNodes 是否需要匿名节点
- * @returns 
+ * @returns 语法树的节点数组
  */
-export async function parserAndFlatAstNodes(text: string, language: string, needAnonymousNodes: boolean = false): Promise<MiniNode[]> {
+export async function parserAndFlatAstNodes(
+    text: string,
+    language: string,
+    needAnonymousNodes: boolean = false
+): Promise<MiniNode[]> {
     // 获取Parser实例
     const parser = await getParser(language);
     // 解析代码文本生成语法树
@@ -110,9 +161,67 @@ export async function parserAndFlatAstNodes(text: string, language: string, need
 }
 
 /**
+ * 递归处理语法树节点
+ * @param node 语法树节点
+ * @param handler 节点处理函数
+ */
+export async function handlerSyntaxNodeByRecursion(
+    node: SyntaxNode,
+    handler: (node: SyntaxNode, walk: TreeCursor) => void
+) {
+    const walk = node.walk();
+    let walkIn = true;
+    do {
+        if (!walkIn) {
+            // 向父节点游走
+            if (!walk.gotoParent() || walk.nodeId === node.id) {
+                break;
+            }
+            if (!walk.gotoNextSibling()) {
+                continue;
+            }
+        }
+        walkIn = true;
+        handler(walk.currentNode, walk);
+        if (walk.gotoFirstChild()) {
+            continue;
+        }
+        if (walk.gotoNextSibling()) {
+            continue;
+        }
+        walkIn = false;
+    } while (true);
+}
+
+/**
+ * 编辑语法树
+ * @param tree 语法树
+ * @param editChangeEvent 文本变化事件
+ * @param document VSCode文档对象
+ * @returns 更新后的语法树
+ */
+export async function editTree(tree: Parser.Tree, editChangeEvent: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument){
+    const parser = await getParser(document.languageId);
+    const editRange = new EditRange(editChangeEvent, document);
+    tree.edit(editRange);
+    return parser.parse(document.getText(), tree);
+}
+
+/**
+ * 解析代码文本生成语法树
+ * @param text 代码文本
+ * @param language 语言
+ * @returns 语法树
+ */
+export async function parserAst(text: string, language: string): Promise<Parser.Tree> {
+    const parser = await getParser(language);
+    return parser.parse(text);
+}
+
+/**
  * 获取指定语言的Parser实例
  * @param language 语言
- * @returns
+ * @returns Parser实例
  */
 export async function getParser(language: string) {
     let parser = TS_PARSER.get(language);
@@ -132,7 +241,7 @@ export async function getParser(language: string) {
 /**
  * 初始化指定语言的Parser实例
  * @param language 语言
- * @returns
+ * @returns Parser实例
  */
 async function initTSParser(language: string) {
     await Parser.init();
@@ -146,8 +255,8 @@ async function initTSParser(language: string) {
 
 /**
  * 检查是否存在指定语言的wasm文件，如果不存在则下载
- * @param language 语音
- * @returns
+ * @param language 语言
+ * @returns 错误信息，如果存在错误则返回错误信息，否则返回undefined
  */
 async function checkLanguageWasm(language: string) {
     const wasmPath = path.resolve(WASM_DIR, `tree-sitter-${language}.wasm`);
@@ -165,7 +274,7 @@ async function checkLanguageWasm(language: string) {
  * 下载指定语言的wasm文件到指定路径
  * @param language 语言
  * @param wasmPath wasm文件保存路径
- * @returns
+ * @returns Promise对象，表示下载操作
  */
 function downloadWasmFile(language: string, wasmPath: string): Promise<any> {
     return new Promise<void>((resolve, reject) => {
@@ -184,7 +293,7 @@ function downloadWasmFile(language: string, wasmPath: string): Promise<any> {
                     }
                     const arrayBuffer = await response.arrayBuffer();
                     const buffer = Buffer.from(arrayBuffer);
-                    fs.writeFileSync(wasmPath, buffer)
+                    fs.writeFileSync(wasmPath, buffer);
                     resolve();
                 } catch (error) {
                     console.error(`Failed to download wasm file. Url: ${wasmUrl}, Error: ${error}`);

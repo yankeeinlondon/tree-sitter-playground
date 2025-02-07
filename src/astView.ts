@@ -1,6 +1,7 @@
 import path from "path";
 import * as vscode from "vscode";
-import { MiniNode, parserAndFlatAstNodes } from "./parser";
+import { Tree } from "web-tree-sitter";
+import { editTree, handlerSyntaxNodeByRecursion, MiniNode, parserAst } from "./parser";
 /**
  * webview状态数据类型
  */
@@ -26,7 +27,7 @@ interface SerializeAstWebview {
     // 序列化的webview面板
     webviewPanel: vscode.WebviewPanel;
     // 序列化的状态数据
-    state: AstWebviewState
+    state: AstWebviewState;
 }
 
 /**
@@ -110,9 +111,10 @@ class AstWebview {
     public static readonly viewType = "tree-sitter-viewer.ast-webview";
     // 打开的代码文档
     private readonly doc: vscode.TextDocument;
-    private _webviewPanel: vscode.WebviewPanel;
+    private _webviewPanel!: vscode.WebviewPanel;
     private visible: boolean = false;
-    private state: AstWebviewState;
+    private state!: AstWebviewState;
+    private astTree!: Tree;
     public get webviewPanel() {
         return this._webviewPanel;
     }
@@ -124,12 +126,20 @@ class AstWebview {
      */
     constructor(doc: vscode.TextDocument, serializeAstWebview?: SerializeAstWebview) {
         this.doc = doc;
+        this.initWebviewPanel(serializeAstWebview);
+        parserAst(this.doc.getText(), this.doc.languageId).then((tree) => {
+            this.astTree = tree;
+            this.refreshWebview();
+        });
+    }
+
+    private initWebviewPanel(serializeAstWebview?: SerializeAstWebview) {
         if (serializeAstWebview) {
             this._webviewPanel = serializeAstWebview.webviewPanel;
             this.state = serializeAstWebview.state;
         } else {
             // 创建一个新的webviewPanel
-            const viewTitle = `${path.basename(doc.fileName)} - Ast`;
+            const viewTitle = `${path.basename(this.doc.fileName)} - Ast`;
             this._webviewPanel = vscode.window.createWebviewPanel(
                 AstWebview.viewType,
                 viewTitle,
@@ -138,29 +148,37 @@ class AstWebview {
             );
             this._webviewPanel.webview.options = { enableScripts: true };
             this.state = {
-                docUri: doc.uri.toString(),
+                docUri: this.doc.uri.toString(),
                 nodes: [],
                 enableQuery: false,
-                queryText: '',
+                queryText: "",
                 showAnonymousNodes: false,
                 enableEditorSync: true,
-            }
+            };
         }
         this.visible = this._webviewPanel.visible;
+        this.handlerEvent();
+        // 更新webview页面内容
+        this._webviewPanel.webview.html = this.getHtml();
+    }
 
+    private handlerEvent() {
         // 监听由webview传递的消息
         const receiveMessageDispose = this._webviewPanel.webview.onDidReceiveMessage((event) => {
             const { command, value } = event;
             switch (command) {
-                case 'showAnonymousNodes':
+                case "showAnonymousNodes":
                     this.state.showAnonymousNodes = value;
-                    this.refresh();
+                    this.refreshWebview();
                     break;
-                case 'enableEditorSync':
+                case "enableEditorSync":
                     this.state.enableEditorSync = value;
                     break;
-                default:
+                case "selectEditorText":
+                    const { startIndex, endIndex } = value;
 
+                    break;
+                default:
             }
         });
 
@@ -168,7 +186,7 @@ class AstWebview {
         const webviewSateChangeDispose = this._webviewPanel.onDidChangeViewState((event) => {
             if (!this.visible && this._webviewPanel.visible) {
                 // 刷新视图内容
-                this.refresh();
+                this.refreshWebview();
                 let viewColumn = vscode.ViewColumn.One;
                 if (this._webviewPanel.viewColumn === vscode.ViewColumn.One) {
                     viewColumn = vscode.ViewColumn.Beside;
@@ -180,37 +198,48 @@ class AstWebview {
         });
 
         // 监听文档的修改事件
-        const textDocChangeDispose = vscode.workspace.onDidChangeTextDocument((event) => {
-            const doc = event.document;
-            if (doc.uri.toString() === doc.uri.toString()) {
-                this.refresh();
+        const textDocChangeDispose = vscode.workspace.onDidChangeTextDocument(async ({ document, contentChanges }) => {
+            if (document.uri.toString() === this.doc.uri.toString()) {
+                for (const change of contentChanges) {
+                    // 增量更新语法树
+                    this.astTree = await editTree(this.astTree, change, document);
+                }
+                if (contentChanges.length > 0) {
+                    await this.refreshWebview();
+                }
             }
         });
 
         // 监听文本编辑器的滚动事件
-        const changeVisibleRangesDispose = vscode.window.onDidChangeTextEditorVisibleRanges(({textEditor, visibleRanges})=>{
-            const eventDoc = textEditor.document;
-            if(this.state.enableEditorSync && this.visible && doc.uri.toString() === eventDoc.uri.toString()){
-                this._webviewPanel.webview.postMessage({
-                    command: "scroll",
-                    data: JSON.stringify(visibleRanges[0].start)
-                });
+        const changeVisibleRangesDispose = vscode.window.onDidChangeTextEditorVisibleRanges(
+            ({ textEditor, visibleRanges }) => {
+                const eventDoc = textEditor.document;
+                if (
+                    this.state.enableEditorSync &&
+                    this.visible &&
+                    this.doc.uri.toString() === eventDoc.uri.toString()
+                ) {
+                    this._webviewPanel.webview.postMessage({
+                        command: "scroll",
+                        data: JSON.stringify(visibleRanges[0].start),
+                    });
+                }
             }
-        });
+        );
 
         // 监听编辑器的点击和文本选中事件
-        const changeSelectionDispose= vscode.window.onDidChangeTextEditorSelection(({textEditor, selections})=>{
+        const changeSelectionDispose = vscode.window.onDidChangeTextEditorSelection(({ textEditor, selections }) => {
             const eventDoc = textEditor.document;
-            if(this.state.enableEditorSync && this.visible && doc.uri.toString() === eventDoc.uri.toString()){
-                const {anchor, active, isReversed, isEmpty} = selections[0]
+            if (this.state.enableEditorSync && this.visible && this.doc.uri.toString() === eventDoc.uri.toString()) {
+                const { anchor, active, isReversed, isEmpty } = selections[0];
                 const startPosition = isReversed ? active : anchor;
                 const endPosition = isReversed ? anchor : active;
 
                 // TODO 实现编辑器定位到抽象语法树
                 /* this._webviewPanel.webview.postMessage({
-                    command: "goto",
-                    data: JSON.stringify({startPosition, endPosition: isEmpty ? undefined : endPosition})
-                }); */
+            command: "goto",
+            data: JSON.stringify({startPosition, endPosition: isEmpty ? undefined : endPosition})
+        }); */
             }
         });
 
@@ -221,12 +250,8 @@ class AstWebview {
             textDocChangeDispose.dispose();
             changeVisibleRangesDispose.dispose();
             changeSelectionDispose.dispose();
-            ASTWebviewManager.deleteCache(doc.uri);
+            ASTWebviewManager.deleteCache(this.doc.uri);
         });
-
-        // 更新webview页面内容
-        this._webviewPanel.webview.html = this.getHtml();
-        this.refresh();
     }
 
     /**
@@ -242,12 +267,17 @@ class AstWebview {
     /**
      * 刷新 Webview 内容
      */
-    async refresh() {
-        const text = this.doc.getText();
-        this.state.nodes = await parserAndFlatAstNodes(text, this.doc.languageId, this.state.showAnonymousNodes);
+    async refreshWebview() {
+        this.state.nodes = [];
+        await handlerSyntaxNodeByRecursion(this.astTree.rootNode, (node, walk) => {
+            if (this.state.showAnonymousNodes || walk.nodeIsNamed) {
+                this.state.nodes.push(new MiniNode(node, walk));
+            }
+        });
+
         this._webviewPanel.webview.postMessage({
             command: "refresh",
-            data: JSON.stringify(this.state)
+            data: JSON.stringify(this.state),
         });
     }
 

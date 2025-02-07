@@ -5,6 +5,10 @@ const enableQueryCheckbox = document.getElementById('enabled-query-checkbox');
 const editorSyncCheckbox = document.getElementById('editor-sync-checkbox');
 
 const vscode = acquireVsCodeApi();
+
+/**
+ * 全局状态类，用于管理webview的状态
+ */
 class GlobalState {
     docUri = "";
     nodes = [];
@@ -13,6 +17,10 @@ class GlobalState {
     showAnonymousNodes = false;
     enableEditorSync = true;
 
+    /**
+     * 设置状态
+     * @param {Object} state 状态对象
+     */
     setState(state) {
         Object.assign(this, state);
         vscode.setState(this);
@@ -26,32 +34,57 @@ class GlobalState {
         updateTree(this.nodes);
     }
 
+    /**
+     * 设置文档URI
+     * @param {string} value 文档URI
+     */
     setDocUri(value) {
         this.docUri = value;
         vscode.setState(this);
     }
 
+    /**
+     * 设置节点数组
+     * @param {Array} value 节点数组
+     */
     setNodes(value = []) {
         this.nodes = value;
         vscode.setState(this);
         updateTree(this.nodes);
     }
 
+    /**
+     * 设置是否启用查询
+     * @param {boolean} value 是否启用查询
+     */
     setEnableQuery(value) {
         this.enableQuery = value;
         vscode.setState(this);
         queryContainer.style.display = this.enableQuery ? "block" : "none";
     }
 
+    /**
+     * 设置查询文本
+     * @param {string} value 查询文本
+     */
     setQueryText(value) {
         this.queryText = value;
         vscode.setState(this);
     }
 
+    /**
+     * 设置是否显示匿名节点
+     * @param {boolean} value 是否显示匿名节点
+     */
     setShowAnonymousNodes(value) {
         this.showAnonymousNodes = value;
         vscode.setState(this);
     }
+
+    /**
+     * 设置是否启用编辑器同步
+     * @param {boolean} value 是否启用编辑器同步
+     */
     setEnableEditorSync(value) {
         this.enableEditorSync = value;
         vscode.setState(this);
@@ -75,7 +108,7 @@ class GlobalState {
                 (items && items.length > 0) && items[0].scrollIntoView({
                     behavior: 'smooth', // 平滑滚动
                     block: 'start' // 元素顶部对齐视口顶部
-                })
+                });
                 break;
             case 'goto':
                 // 定位到指定节点
@@ -104,7 +137,7 @@ class GlobalState {
 
 /**
  * 更新语法树
- * @param {[*]} nodes 
+ * @param {Array} nodes 节点数组
  */
 function updateTree(nodes) {
     if (!nodes || nodes.length <= 0) {
@@ -118,12 +151,18 @@ function updateTree(nodes) {
     rowNumberContainer.innerHTML = htmls.rowNumbers;
     // 监听节点元素点击事件
     rowContianer.addEventListener('mouseover', (event) => {
-        if (event.target.classList.contains('node-link')) {
-            console.log('按钮被点击了！', event.target);
+        const element = event.target;
+        if (element.classList.contains('node-link')) {
+            vscode.postMessage({ command: 'selectEditorText', value: element.dataset });
         }
     });
 }
 
+/**
+ * 将语法树节点转换为HTML
+ * @param {Array} nodes 节点数组
+ * @returns {Object} 包含HTML字符串的对象
+ */
 function treeNodeToHtml(nodes) {
     let rows = "", rowNumbers = "";
     for (let i = 0; i < nodes.length; i++) {
@@ -132,12 +171,15 @@ function treeNodeToHtml(nodes) {
         const { row: endRow, column: endColumn } = node.endPosition;
         // 设置缩进
         const indentHtml = `<span class="indent">&nbsp;&nbsp;</span>`.repeat(node.level);
-        rows += `<div class="row row-id-${node.id}" id="${node.id}">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link a-${node.id} ${node.isNamed ? 'named' : 'anonymous'}" href="javascript:void(0);" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
+        rows += `<div class="row row-id-${node.id}" id="${node.id}">${indentHtml}${node.fieldName && node.fieldName + ': '}<a class="node-link a-${node.id} ${node.isNamed ? 'named' : 'anonymous'}" href="javascript:void(0);" data-id="${node.id}" data-range="${startRow},${startColumn},${endRow},${endColumn}" data-startIndex="${node.startIndex}" data-endIndex="${node.endIndex}">${node.type}</a> <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span></div>`;
         rowNumbers += `<div class="row row-${startRow}" id="rc-${startRow}-${startColumn}">${i + 1}</div>`;
     }
     return { rows, rowNumbers };
 }
 
+/**
+ * 定位到编辑器
+ */
 function gotoEditor(){
     console.log(this);
 }
