@@ -212,10 +212,3 @@ function treeNodeToHtml(nodes) {
     }
     return { rows, rowNumbers };
 }
-
-/**
- * 定位到编辑器
- */
-function gotoEditor() {
-    console.log(this);
-}
