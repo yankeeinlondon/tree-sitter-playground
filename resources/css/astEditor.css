@@ -55,8 +55,7 @@ hr {
 }
 
 .row-number-container .row {
-    margin-left: -10px;
-    margin-right: 30px;
+    margin-right: 20px;
     color: var(--vscode-editorLineNumber-foreground);
     font-family: Consolas, "Courier New", monospace;
 }
@@ -292,11 +291,15 @@ li.tree-row {
   overflow-wrap: inherit;
   text-wrap: nowrap;
   font-size: 14px;
-  line-height: 19px;
+  line-height: 20px;
+  display: flex;
+  flex-direction: row;
+  height: 20px;
 }
 
 span.position-info {
     color: #5C6370;
+    margin-left: 10px;
 }
 
 span.indent {

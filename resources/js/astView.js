@@ -143,6 +143,11 @@ class GlobalState {
         vscode.postMessage({ command: "enableEditorSync", value: checked });
         globalState.setEnableEditorSync(editorSyncCheckbox.checked);
     });
+    document.body.addEventListener('click', ({ target }) => {
+        if (!target.classList.contains("node-link")) {
+            vscode.postMessage({ command: "selectEditorText", value: { startIndex: '', endIndex: '', isClick: true } });
+        }
+    });
 })();
 
 /**
@@ -192,9 +197,8 @@ function treeNodeToHtml(nodes) {
         // 设置缩进
         const indentHtml = `<span class="indent">&nbsp;&nbsp;</span>`.repeat(node.level);
         rows +=
-            `` +
             `<div class="row row-id-${node.id}">
-            ${indentHtml}${node.fieldName && node.fieldName + ": "}
+            ${indentHtml}${node.fieldName && (node.fieldName + ":&nbsp;")}
             <a class="node-link a-${node.id} ${node.isNamed ? "named" : "anonymous"}" 
                 id="${node.id}"
                 href="javascript:void(0);" 

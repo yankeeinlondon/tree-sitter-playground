@@ -2,6 +2,11 @@ import path from "path";
 import * as vscode from "vscode";
 import Parser, { Tree } from "web-tree-sitter";
 import { EditRange, editTree, handlerSyntaxNodeByRecursion, MiniNode, parserAst } from "./parser";
+
+const astWebviewSelectedDecorationType = vscode.window.createTextEditorDecorationType({
+    backgroundColor: '#125381',
+    borderRadius: '4px'
+});
 /**
  * webview状态数据类型
  */
@@ -175,20 +180,29 @@ class AstWebview {
                     this.state.enableEditorSync = value;
                     break;
                 case "selectEditorText":
-                    const { startIndex, endIndex,isClick } = value;
+                    const { startIndex, endIndex, isClick } = value;
                     if (isClick || (this.state.enableEditorSync && this._webviewPanel.active)) {
                         // 获取当前活动的文本编辑器
                         const editor = vscode.window.visibleTextEditors.find(
                             (editor) => editor.document.uri.toString() === this.doc.uri.toString()
                         );
-                        
+
                         if (editor) {
-                            const start = this.doc.positionAt(startIndex);
-                            const end = this.doc.positionAt(endIndex);
-                            // 设置编辑器的选中内容
-                            editor.selection = new vscode.Selection(start, end);
-                            // 滚动到选中的内容
-                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                            const selectRange: vscode.Range[] = [];
+                            editor.setDecorations(astWebviewSelectedDecorationType, selectRange);
+                            if (startIndex && endIndex) {
+                                const start = this.doc.positionAt(startIndex);
+                                const end = this.doc.positionAt(endIndex);
+                                // 设置编辑器的选中内容
+                                editor.selection = new vscode.Selection(start, end);
+
+                                selectRange.push(new vscode.Range(start, end));
+                                editor.setDecorations(astWebviewSelectedDecorationType, selectRange);
+                                // 滚动到选中的内容
+                                editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+
+                            }
+
                         }
                     }
                     break;
@@ -254,6 +268,7 @@ class AstWebview {
                 this.visible &&
                 this.doc.uri.toString() === eventDoc.uri.toString()
             ) {
+                textEditor.setDecorations(astWebviewSelectedDecorationType, []);
                 const { anchor, active, isReversed, isEmpty } = selections[0];
                 let startPosition: Parser.Point, endPosition: Parser.Point;
                 if (isEmpty) {
@@ -361,7 +376,7 @@ class AstWebview {
                 </div>
                 <div class="split-line"><div>Tree: </div><hr /></div>
                 <div id="output-container-scroll">
-                    <div class="tree-container">
+                    <div class="tree-container" id="tree-container">
                         <div class="row-number-container" id="row-number-container"></div>
                         <div id="output-container" class="highlight" tabindex="0" style="counter-increment: clusterize-counter -1">
                         </div>
