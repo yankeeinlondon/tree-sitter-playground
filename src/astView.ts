@@ -264,6 +264,7 @@ class AstWebview {
             const activeEditor = vscode.window.activeTextEditor;
             if (
                 this.state.enableEditorSync &&
+                !this._webviewPanel.active &&
                 activeEditor?.document.uri.toString() === eventDoc.uri.toString() &&
                 this.visible &&
                 this.doc.uri.toString() === eventDoc.uri.toString()

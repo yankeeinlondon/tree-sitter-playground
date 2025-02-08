@@ -324,12 +324,14 @@ span.indent {
 }
 
 .node-link-selected {
-    border: 1px solid gray !important;
+    border: 1px solid var(--vscode-focusBorder) !important;
     border-radius: 4px;
     text-align: center;
     /* padding-left: 6px; */
 }
-
+.node-link-selected:focus {
+  outline-color: var(--vscode-focusBorder) !important;
+}
 #output-container a:hover {
   text-decoration: underline;
 }

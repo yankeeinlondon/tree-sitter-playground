@@ -175,8 +175,12 @@ function updateTree(nodes) {
     rowContianer.addEventListener("click", (event) => {
         const element = event.target;
         if (element.classList.contains("node-link")) {
-            const data = element.dataset;
-            data['isClick'] = true;
+            document.querySelectorAll("a.node-link-selected").forEach((item) => {
+                item.classList.remove("node-link-selected");
+            });
+            element.classList.add("node-link-selected");
+            
+            const data = Object.assign({isClick: true}, element.dataset);
             vscode.postMessage({ command: "selectEditorText", value: JSON.parse(JSON.stringify(data)) });
         }
     });
