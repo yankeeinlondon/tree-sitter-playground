@@ -47,7 +47,8 @@
             "editor/title": [
                 {
                     "command": "tree-sitter-viewer.view-syntax-tree",
-                    "group": "navigation"
+                    "group": "navigation",
+                    "when": "activeEditor == workbench.editors.files.textFileEditor"
                 }
             ]
         }
