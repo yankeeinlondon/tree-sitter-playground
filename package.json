@@ -4,9 +4,9 @@
     "description": "",
     "version": "1.0.0",
     "license": "MIT",
-    "publisher": "xiaonatuo",
+    "publisher": "guoxin",
     "author": {
-        "name": "xiaonatuo",
+        "name": "guoxin",
         "email": "g371864209@gmail.com",
         "url": "https://github.com/xiaonatuo"
     },
@@ -25,9 +25,6 @@
         "onWebviewPanel:tree-sitter-viewer.ast-webview"
     ],
     "main": "./dist/extension.js",
-    "enabledApiProposals": [
-        "contribEditorContentMenu"
-    ],
     "contributes": {
         "commands": [
             {
