@@ -3,6 +3,7 @@ const queryTextarea = document.getElementById("query-input");
 const showAnonymousCheckbox = document.getElementById("show-anonymous-checkbox");
 const enableQueryCheckbox = document.getElementById("enabled-query-checkbox");
 const nodeMappingCheckbox = document.getElementById("node-mapping-checkbox");
+const logOutputCheckbox = document.getElementById("log-output-checkbox");
 
 const vscode = acquireVsCodeApi();
 
@@ -16,6 +17,7 @@ class GlobalState {
     queryText = "";
     showAnonymousNodes = false;
     enableNodeMapping = true;
+    logOutput = false;
 
     /**
      * 设置状态
@@ -28,6 +30,7 @@ class GlobalState {
         showAnonymousCheckbox.checked = this.showAnonymousNodes;
         enableQueryCheckbox.checked = this.enableQuery;
         nodeMappingCheckbox.checked = this.enableNodeMapping;
+        logOutputCheckbox.checked = this.logOutput;
         queryTextarea.value = this.queryText;
         queryContainer.style.display = this.enableQuery ? "block" : "none";
 
@@ -89,6 +92,15 @@ class GlobalState {
         this.enableNodeMapping = value;
         vscode.setState(this);
     }
+
+    /**
+     * 设置是否输出日志
+     * @param {boolean} value 
+     */
+    setLogOutput(value){
+        this.enableNodeMapping = value;
+        vscode.setState(this);
+    }
 }
 
 (function () {
@@ -127,22 +139,40 @@ class GlobalState {
         }
     });
 
+    // 监听显示匿名节点选择框的修改事件，并发送对应状态
     showAnonymousCheckbox.addEventListener("change", (that, event) => {
         const checked = showAnonymousCheckbox.checked;
         vscode.postMessage({ command: "showAnonymousNodes", value: checked });
         globalState.setShowAnonymousNodes(checked);
     });
+
+    // 监听启用查询选择框的修改事件，并发送对应状态
     enableQueryCheckbox.addEventListener("change", (that, event) => {
         globalState.setEnableQuery(enableQueryCheckbox.checked);
+        // TODO 发送状态
     });
+
+    // 监听查询输入框的修改事件，并发送对应数据
     queryTextarea.addEventListener("change", (that, event) => {
         globalState.setQueryText(queryTextarea.value);
+        // TODO 发送数据
     });
+
+    // 监听节点映射选择框的修改事件，并发送对应状态
     nodeMappingCheckbox.addEventListener("change", (that, event) => {
         const checked = nodeMappingCheckbox.checked;
         vscode.postMessage({ command: "enableNodeMapping", value: checked });
         globalState.setEnableNodeMapping(nodeMappingCheckbox.checked);
     });
+
+    // 监听输出日志选择框的修改事件，并发送对应状态
+    logOutputCheckbox.addEventListener("change", (that, event) => {
+        const checked = logOutputCheckbox.checked;
+        vscode.postMessage({ command: "logOutput", value: checked });
+        globalState.setLogOutput(logOutputCheckbox.checked);
+    });
+
+    // 监听body的鼠标点击事件，如果点击的不是节点，则发送一个空的位置数据
     document.body.addEventListener('click', ({ target }) => {
         if (!target.classList.contains("node-link")) {
             vscode.postMessage({ command: "selectEditorText", value: { startIndex: '', endIndex: '', isClick: true } });

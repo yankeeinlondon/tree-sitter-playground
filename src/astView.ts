@@ -1,12 +1,17 @@
 import path from "path";
 import * as vscode from "vscode";
 import Parser, { Tree } from "web-tree-sitter";
-import { EditRange, editTree, handlerSyntaxNodeByRecursion, MiniNode, parserAst } from "./parser";
+import { EditRange, editTree, getParser, handlerSyntaxNodeByRecursion, MiniNode, parserAst } from "./parser";
 
+// 日志输出
+const logOutput = vscode.window.createOutputChannel("Tree-Sitter-Viewer", { log: true });
+
+// 编辑器内的选中装饰类型，即编辑器内字符选中后的样式
 const astWebviewSelectedDecorationType = vscode.window.createTextEditorDecorationType({
-    backgroundColor: '#125381',
-    borderRadius: '4px'
+    backgroundColor: "#125381",
+    borderRadius: "4px",
 });
+
 /**
  * webview状态数据类型
  */
@@ -23,6 +28,8 @@ interface AstWebviewState {
     showAnonymousNodes: boolean;
     // 是否启用节点映射
     enableNodeMapping: boolean;
+    // 是否输出日志
+    logOutput: boolean;
 }
 
 /**
@@ -119,6 +126,7 @@ class AstWebview {
     private _webviewPanel!: vscode.WebviewPanel;
     private visible: boolean = false;
     private state!: AstWebviewState;
+    private tsParser!: Parser;
     private astTree!: Tree;
     public get webviewPanel() {
         return this._webviewPanel;
@@ -131,13 +139,25 @@ class AstWebview {
      */
     constructor(doc: vscode.TextDocument, serializeAstWebview?: SerializeAstWebview) {
         this.doc = doc;
+
+        // 初始化webview面包
         this.initWebviewPanel(serializeAstWebview);
-        parserAst(this.doc.getText(), this.doc.languageId).then((tree) => {
-            this.astTree = tree;
+
+        // 获取解析器解析语法树并刷新web页面
+        getParser(doc.languageId).then((parser) => {
+            this.tsParser = parser;
+            this.astTree = this.tsParser.parse(doc.getText());
+            // 设置日志
+            this.setLogOutput();
+            // 刷新web页面
             this.refreshWebview();
         });
     }
 
+    /**
+     * 初始化webview面板
+     * @param serializeAstWebview vscode序列化的webview
+     */
     private initWebviewPanel(serializeAstWebview?: SerializeAstWebview) {
         if (serializeAstWebview) {
             this._webviewPanel = serializeAstWebview.webviewPanel;
@@ -159,6 +179,7 @@ class AstWebview {
                 queryText: "",
                 showAnonymousNodes: false,
                 enableNodeMapping: true,
+                logOutput: false,
             };
         }
         this.visible = this._webviewPanel.visible;
@@ -167,6 +188,9 @@ class AstWebview {
         this._webviewPanel.webview.html = this.getHtml();
     }
 
+    /**
+     * 处理事件监听
+     */
     private handlerEvent() {
         // 监听由webview传递的消息
         const receiveMessageDispose = this._webviewPanel.webview.onDidReceiveMessage((event) => {
@@ -200,12 +224,13 @@ class AstWebview {
                                 editor.setDecorations(astWebviewSelectedDecorationType, selectRange);
                                 // 滚动到选中的内容
                                 editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
-
                             }
-
                         }
                     }
                     break;
+                case "logOutput":
+                    this.state.logOutput = value;
+                    this.setLogOutput();
                 default:
             }
         });
@@ -306,6 +331,29 @@ class AstWebview {
     }
 
     /**
+     * 设置日志输出
+     */
+    private setLogOutput(){
+        if (this.state.logOutput) {
+            this.tsParser.setLogger((message, params: { [param: string]: string }, type) => {
+                // 通过判断type以适配不同版本的日志接口
+                if (type) {
+                    let paramsText = "";
+                    for (const key in params) {
+                        paramsText += `\t${key}: ${params[key]}`;
+                    }
+                    logOutput.appendLine(`[${type}]: ${message}. params:\n${paramsText}`);
+                } else {
+                    logOutput.appendLine(`${params ? "\t" : ""}${message}`);
+                }
+            });
+            logOutput.show();
+        } else {
+            this.tsParser.setLogger(null);
+        }
+    }
+
+    /**
      * 将路径转换为 Webview URI
      * @param {...string} paths 路径
      * @returns {vscode.Uri} Webview URI
@@ -359,6 +407,10 @@ class AstWebview {
             <body>
                 <div class="tool-container">
                     <div class="tool-item">
+                        <input type="checkbox" id="log-output-checkbox" ></input>
+                        <label for="log-output-checkbox">显示日志</label>
+                    </div>
+                    <div class="tool-item">
                         <input type="checkbox" id="show-anonymous-checkbox" ></input>
                         <label for="show-anonymous-checkbox">显示匿名节点</label>
                     </div>
@@ -373,7 +425,7 @@ class AstWebview {
                 </div>
                 <div class="query-container" id="query-container">
                     <label>查询语句：</label>
-                    <textarea id="query-input"></textarea>
+                    <textarea id="query-input" placeholder="此功能还没有实现。qwq"></textarea>
                 </div>
                 <div class="split-line"><div>Tree: </div><hr /></div>
                 <div id="output-container-scroll">
