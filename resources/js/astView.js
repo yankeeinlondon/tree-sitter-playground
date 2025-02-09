@@ -183,6 +183,8 @@ class GlobalState {
             vscode.postMessage({ command: "selectEditorText", value: { startIndex: '', endIndex: '', isClick: true } });
         }
     });
+
+    enableQueryCheckbox.parentElement.style.display = 'none';
 })();
 
 /**

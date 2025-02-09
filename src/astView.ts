@@ -424,7 +424,7 @@ class AstWebview {
                         <input type="checkbox" id="node-mapping-checkbox" ></input>
                         <label for="node-mapping-checkbox">映射节点</label>
                     </div>
-                    <div class="tool-item" style="display:none;"> <!-- TODO 功能未实现，暂时不显示 -->
+                    <div class="tool-item"> <!-- TODO 功能未实现，暂时不显示 -->
                         <input type="checkbox" id="enabled-query-checkbox"></input>
                         <label for="enabled-query-checkbox">启用查询</label>
                     </div><br>
