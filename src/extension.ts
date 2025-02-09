@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { AstEditorProvider } from "./astEditor";
 import { ASTWebviewManager } from "./astView";
 
 /**
@@ -7,15 +6,8 @@ import { ASTWebviewManager } from "./astView";
  * @param context 扩展插件的上下文
  */
 export function activate(context: vscode.ExtensionContext) {
+    // 初始化Ast webview管理器
     ASTWebviewManager.initManager(context);
-    // 注册抽象语法树编辑器AstEditor
-    const astEditorProvider = new AstEditorProvider(context);
-    const astEditorDisposable = vscode.window.registerCustomEditorProvider(
-        AstEditorProvider.viewType,
-        astEditorProvider
-    );
-    context.subscriptions.push(astEditorDisposable);
-
     // 注册查看语法树命令
     const disposable = vscode.commands.registerCommand("tree-sitter-viewer.view-syntax-tree", viewSyntaxTreeCommand);
     context.subscriptions.push(disposable);
