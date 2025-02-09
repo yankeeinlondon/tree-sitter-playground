@@ -1,7 +1,7 @@
 import path from "path";
 import * as vscode from "vscode";
 import Parser, { Tree } from "web-tree-sitter";
-import { EditRange, editTree, getParser, handlerSyntaxNodeByRecursion, MiniNode, parserAst } from "./parser";
+import { EditRange, editTree, getParser, handlerSyntaxNodeByRecursion, MiniNode } from "./parser";
 
 // 日志输出
 const logOutput = vscode.window.createOutputChannel("Tree-Sitter-Viewer", { log: true });

@@ -116,51 +116,6 @@ export class MiniNode {
 }
 
 /**
- * 将代码文本解析为语法树，并以扁平化形式将语法树输出为节点数组
- * @param text 代码文本
- * @param language 语言
- * @param needAnonymousNodes 是否需要匿名节点
- * @returns 语法树的节点数组
- */
-export async function parserAndFlatAstNodes(
-    text: string,
-    language: string,
-    needAnonymousNodes: boolean = false
-): Promise<MiniNode[]> {
-    // 获取Parser实例
-    const parser = await getParser(language);
-    // 解析代码文本生成语法树
-    const tree = parser.parse(text);
-    const list: MiniNode[] = [];
-    const walk = tree.walk();
-    let walkIn = true;
-    do {
-        if (!walkIn) {
-            // 向父节点游走
-            if (!walk.gotoParent()) {
-                break;
-            }
-            if (!walk.gotoNextSibling()) {
-                continue;
-            }
-        }
-        walkIn = true;
-        if (needAnonymousNodes || walk.nodeIsNamed) {
-            list.push(new MiniNode(walk.currentNode, walk));
-        }
-        if (walk.gotoFirstChild()) {
-            continue;
-        }
-        if (walk.gotoNextSibling()) {
-            continue;
-        }
-        walkIn = false;
-    } while (true);
-    // 返回根节点
-    return list;
-}
-
-/**
  * 递归处理语法树节点
  * @param node 语法树节点
  * @param handler 节点处理函数
@@ -205,17 +160,6 @@ export async function editTree(tree: Parser.Tree, editChangeEvent: vscode.TextDo
     const editRange = new EditRange(editChangeEvent, document);
     tree.edit(editRange);
     return parser.parse(document.getText(), tree);
-}
-
-/**
- * 解析代码文本生成语法树
- * @param text 代码文本
- * @param language 语言
- * @returns 语法树
- */
-export async function parserAst(text: string, language: string): Promise<Parser.Tree> {
-    const parser = await getParser(language);
-    return parser.parse(text);
 }
 
 /**
