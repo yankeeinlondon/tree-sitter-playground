@@ -24,13 +24,17 @@
     "activationEvents": [
         "onWebviewPanel:tree-sitter-viewer.ast-webview"
     ],
+    "icon": "./resources/icons/tree.png",
     "main": "./dist/extension.js",
     "contributes": {
         "commands": [
             {
                 "command": "tree-sitter-viewer.view-syntax-tree",
                 "title": "View Syntax Tree",
-                "icon": "$(symbol-class)"
+                "icon": {
+                    "light": "resources/icons/branch-light.svg",
+                    "dark": "resources/icons/branch-dark.svg"
+                }
             }
         ],
         "menus": {
