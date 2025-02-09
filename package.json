@@ -49,23 +49,6 @@
                     "group": "navigation"
                 }
             ]
-        },
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "tree-sitter-viewer-container",
-                    "title": "Tree Sitter Viewer",
-                    "icon": "resources/icons/tree-sitter-viewer.svg"
-                }
-            ]
-        },
-        "views": {
-            "tree-sitter-viewer-container": [
-                {
-                    "id": "tree-sitter-setting",
-                    "name": "Setting Tree Sitter"
-                }
-            ]
         }
     },
     "scripts": {
@@ -89,6 +72,7 @@
         "@typescript-eslint/parser": "^8.17.0",
         "@vscode/test-cli": "^0.0.10",
         "@vscode/test-electron": "^2.4.1",
+        "@vscode/vsce": "^2.32.0",
         "cpx": "^1.5.0",
         "eslint": "^9.16.0",
         "ts-loader": "^9.5.1",
