@@ -1,3 +1,5 @@
+const rowContianer = document.getElementById("output-container");
+const rowNumberContainer = document.getElementById("row-number-container");
 const queryContainer = document.getElementById("query-container");
 const queryTextarea = document.getElementById("query-input");
 const showAnonymousCheckbox = document.getElementById("show-anonymous-checkbox");
@@ -98,7 +100,7 @@ class GlobalState {
      * @param {boolean} value 
      */
     setLogOutput(value){
-        this.enableNodeMapping = value;
+        this.logOutput = value;
         vscode.setState(this);
     }
 }
@@ -148,12 +150,15 @@ class GlobalState {
 
     // 监听启用查询选择框的修改事件，并发送对应状态
     enableQueryCheckbox.addEventListener("change", (that, event) => {
-        globalState.setEnableQuery(enableQueryCheckbox.checked);
-        // TODO 发送状态
+        const checked = enableQueryCheckbox.checked;
+        vscode.postMessage({ command: "enableQuery", value: checked });
+        globalState.setEnableQuery(checked);
     });
 
     // 监听查询输入框的修改事件，并发送对应数据
     queryTextarea.addEventListener("change", (that, event) => {
+        const value = queryTextarea.value;
+        vscode.postMessage({ command: "queryNode", value });
         globalState.setQueryText(queryTextarea.value);
         // TODO 发送数据
     });
@@ -190,8 +195,6 @@ function updateTree(nodes) {
     }
     const nodeArray = typeof nodes === "string" ? JSON.parse(nodes) : nodes;
     const htmls = treeNodeToHtml(nodeArray);
-    const rowContianer = document.getElementById("output-container");
-    const rowNumberContainer = document.getElementById("row-number-container");
     rowContianer.innerHTML = htmls.rows;
     rowNumberContainer.innerHTML = htmls.rowNumbers;
     // 监听节点元素鼠标悬浮事件

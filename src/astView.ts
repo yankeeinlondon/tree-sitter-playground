@@ -228,6 +228,12 @@ class AstWebview {
                         }
                     }
                     break;
+                case 'enableQuery':
+                    this.state.enableQuery = value;
+                    break;
+                case 'queryNode':
+                    this.state.queryText = value;
+                    // TODO 实现节点查询功能
                 case "logOutput":
                     this.state.logOutput = value;
                     this.setLogOutput();
