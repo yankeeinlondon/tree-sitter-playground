@@ -5,7 +5,7 @@
 
 ## 功能演示
 
-![功能演示](resources/demo.gif)
+![功能演示](https://raw.githubusercontent.com/xiaonatuo/tree-sitter-viewer/refs/heads/master/resources/demo.gif)
 
 ## 已知问题
 
