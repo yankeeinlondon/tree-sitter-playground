@@ -21,8 +21,8 @@ interface AstWebviewState {
     queryText: string;
     // 是否显示匿名节点
     showAnonymousNodes: boolean;
-    // 是否启用编辑器同步功能
-    enableEditorSync: boolean;
+    // 是否启用节点映射
+    enableNodeMapping: boolean;
 }
 
 /**
@@ -158,7 +158,7 @@ class AstWebview {
                 enableQuery: false,
                 queryText: "",
                 showAnonymousNodes: false,
-                enableEditorSync: true,
+                enableNodeMapping: true,
             };
         }
         this.visible = this._webviewPanel.visible;
@@ -176,12 +176,12 @@ class AstWebview {
                     this.state.showAnonymousNodes = value;
                     this.refreshWebview();
                     break;
-                case "enableEditorSync":
-                    this.state.enableEditorSync = value;
+                case "enableNodeMapping":
+                    this.state.enableNodeMapping = value;
                     break;
                 case "selectEditorText":
                     const { startIndex, endIndex, isClick } = value;
-                    if (isClick || (this.state.enableEditorSync && this._webviewPanel.active)) {
+                    if (isClick || (this.state.enableNodeMapping && this._webviewPanel.active)) {
                         // 获取当前活动的文本编辑器
                         const editor = vscode.window.visibleTextEditors.find(
                             (editor) => editor.document.uri.toString() === this.doc.uri.toString()
@@ -246,7 +246,7 @@ class AstWebview {
                 const activeEditor = vscode.window.activeTextEditor;
                 if (
                     activeEditor?.document.uri.toString() === eventDoc.uri.toString() &&
-                    this.state.enableEditorSync &&
+                    this.state.enableNodeMapping &&
                     this.visible &&
                     this.doc.uri.toString() === eventDoc.uri.toString()
                 ) {
@@ -263,7 +263,7 @@ class AstWebview {
             const eventDoc = textEditor.document;
             const activeEditor = vscode.window.activeTextEditor;
             if (
-                this.state.enableEditorSync &&
+                this.state.enableNodeMapping &&
                 !this._webviewPanel.active &&
                 activeEditor?.document.uri.toString() === eventDoc.uri.toString() &&
                 this.visible &&
@@ -363,8 +363,8 @@ class AstWebview {
                         <label for="show-anonymous-checkbox">显示匿名节点</label>
                     </div>
                     <div class="tool-item">
-                        <input type="checkbox" id="editor-sync-checkbox" ></input>
-                        <label for="editor-sync-checkbox">映射节点</label>
+                        <input type="checkbox" id="node-mapping-checkbox" ></input>
+                        <label for="node-mapping-checkbox">映射节点</label>
                     </div>
                     <div class="tool-item" style="display:none;"> <!-- TODO 功能未实现，暂时不显示 -->
                         <input type="checkbox" id="enabled-query-checkbox"></input>

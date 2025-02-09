@@ -2,7 +2,7 @@ const queryContainer = document.getElementById("query-container");
 const queryTextarea = document.getElementById("query-input");
 const showAnonymousCheckbox = document.getElementById("show-anonymous-checkbox");
 const enableQueryCheckbox = document.getElementById("enabled-query-checkbox");
-const editorSyncCheckbox = document.getElementById("editor-sync-checkbox");
+const nodeMappingCheckbox = document.getElementById("node-mapping-checkbox");
 
 const vscode = acquireVsCodeApi();
 
@@ -15,7 +15,7 @@ class GlobalState {
     enableQuery = false;
     queryText = "";
     showAnonymousNodes = false;
-    enableEditorSync = true;
+    enableNodeMapping = true;
 
     /**
      * 设置状态
@@ -27,7 +27,7 @@ class GlobalState {
 
         showAnonymousCheckbox.checked = this.showAnonymousNodes;
         enableQueryCheckbox.checked = this.enableQuery;
-        editorSyncCheckbox.checked = this.enableEditorSync;
+        nodeMappingCheckbox.checked = this.enableNodeMapping;
         queryTextarea.value = this.queryText;
         queryContainer.style.display = this.enableQuery ? "block" : "none";
 
@@ -85,8 +85,8 @@ class GlobalState {
      * 设置是否启用编辑器同步
      * @param {boolean} value 是否启用编辑器同步
      */
-    setEnableEditorSync(value) {
-        this.enableEditorSync = value;
+    setEnableNodeMapping(value) {
+        this.enableNodeMapping = value;
         vscode.setState(this);
     }
 }
@@ -138,10 +138,10 @@ class GlobalState {
     queryTextarea.addEventListener("change", (that, event) => {
         globalState.setQueryText(queryTextarea.value);
     });
-    editorSyncCheckbox.addEventListener("change", (that, event) => {
-        const checked = editorSyncCheckbox.checked;
-        vscode.postMessage({ command: "enableEditorSync", value: checked });
-        globalState.setEnableEditorSync(editorSyncCheckbox.checked);
+    nodeMappingCheckbox.addEventListener("change", (that, event) => {
+        const checked = nodeMappingCheckbox.checked;
+        vscode.postMessage({ command: "enableNodeMapping", value: checked });
+        globalState.setEnableNodeMapping(nodeMappingCheckbox.checked);
     });
     document.body.addEventListener('click', ({ target }) => {
         if (!target.classList.contains("node-link")) {
