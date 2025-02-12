@@ -27,11 +27,10 @@ export class EditRange implements Edit {
      */
     constructor(editChangeEvent: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument) {
         const { range, rangeOffset, rangeLength, text } = editChangeEvent;
-        const isDelete = !text;
-
-        this.startIndex = document.offsetAt(range.start);
-        this.oldEndIndex = document.offsetAt(range.end);
-        this.newEndIndex = isDelete ? this.startIndex : rangeOffset + text.length;
+        
+        this.startIndex = rangeOffset;
+        this.oldEndIndex = rangeOffset + rangeLength;
+        this.newEndIndex = rangeOffset + text.length;
 
         this.startPosition = EditRange.asTSPoint(range.start);
         this.oldEndPosition = EditRange.asTSPoint(range.end);
