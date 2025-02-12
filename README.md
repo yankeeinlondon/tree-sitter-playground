@@ -1,7 +1,26 @@
 # tree-sitter-viewer 
 
 这是一个类似于 `Tree-sitter` 官网[`游乐场`](https://tree-sitter.github.io/tree-sitter/7-playground.html)的`VS Code`扩展插件。  
-您可以使用该插件方便的查看不同开发语言的抽象语法树，插件支持的语言与 `Tree-sitter` 官网 `游乐场` 保持一致。
+您可以使用该插件方便的查看不同开发语言的抽象语法树。  
+以下是目前支持查看语法树的语言列表：  
+- Bash
+- C
+- C++
+- C#
+- CSS
+- Go
+- Haskell
+- HTML
+- Java
+- JavaScript
+- JSON
+- PHP
+- Python
+- Regex
+- Ruby
+- Rust
+- Scala
+- TypeScript
 
 ## 功能演示
 
@@ -25,6 +44,12 @@ https://github.com/xiaonatuo/tree-sitter-viewer/issues
 
 ### 1.0.3
 - 增加在关闭语法树webview时移除对编辑器中代码的样式修饰
+
+### 1.0.4
+- 修复在下载wasm文件失败时不显示通知的问题
+- 优化获取相关语言wasm文件的逻辑
+- 将主流开发语言的wasm文件预置到插件中
+- 在编译打包时，使用cpy替换cpx进行wasm文件的拷贝
 
 ## 更多信息
 

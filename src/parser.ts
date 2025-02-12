@@ -27,7 +27,7 @@ export class EditRange implements Edit {
      */
     constructor(editChangeEvent: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument) {
         const { range, rangeOffset, rangeLength, text } = editChangeEvent;
-        
+
         this.startIndex = rangeOffset;
         this.oldEndIndex = rangeOffset + rangeLength;
         this.newEndIndex = rangeOffset + text.length;
@@ -154,7 +154,11 @@ export async function handlerSyntaxNodeByRecursion(
  * @param document VSCode文档对象
  * @returns 更新后的语法树
  */
-export async function editTree(tree: Parser.Tree, editChangeEvent: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument){
+export async function editTree(
+    tree: Parser.Tree,
+    editChangeEvent: vscode.TextDocumentContentChangeEvent,
+    document: vscode.TextDocument
+) {
     const parser = await getParser(document.languageId);
     const editRange = new EditRange(editChangeEvent, document);
     tree.edit(editRange);
@@ -189,7 +193,7 @@ export async function getParser(language: string) {
 async function initTSParser(language: string) {
     await Parser.init();
     const parser = new Parser();
-    const wasmPath = path.resolve(WASM_DIR, `tree-sitter-${language}.wasm`);
+    const wasmPath = path.resolve(WASM_DIR, `${getWasmId(language)}.wasm`);
     const languageWasm = await Parser.Language.load(wasmPath);
     parser.setLanguage(languageWasm);
     TS_PARSER.set(language, parser);
@@ -201,8 +205,8 @@ async function initTSParser(language: string) {
  * @param language 语言
  * @returns 错误信息，如果存在错误则返回错误信息，否则返回undefined
  */
-async function checkLanguageWasm(language: string) {
-    const wasmPath = path.resolve(WASM_DIR, `tree-sitter-${language}.wasm`);
+async function checkLanguageWasm(language: string): Promise<any> {
+    const wasmPath = path.resolve(WASM_DIR, `${getWasmId(language)}.wasm`);
     if (!fs.existsSync(wasmPath)) {
         // 下载wasm文件
         if (!fs.existsSync(WASM_DIR)) {
@@ -219,8 +223,8 @@ async function checkLanguageWasm(language: string) {
  * @param wasmPath wasm文件保存路径
  * @returns Promise对象，表示下载操作
  */
-function downloadWasmFile(language: string, wasmPath: string): Promise<any> {
-    return new Promise<void>((resolve, reject) => {
+function downloadWasmFile(language: string, wasmPath: string): Promise<string | null> {
+    return new Promise<string | null>((resolve, reject) => {
         vscode.window.withProgress(
             {
                 title: `Downloading ${language} wasm file`,
@@ -237,14 +241,29 @@ function downloadWasmFile(language: string, wasmPath: string): Promise<any> {
                     const arrayBuffer = await response.arrayBuffer();
                     const buffer = Buffer.from(arrayBuffer);
                     fs.writeFileSync(wasmPath, buffer);
-                    resolve();
+                    resolve(null);
                 } catch (error) {
                     console.error(`Failed to download wasm file. Url: ${wasmUrl}, Error: ${error}`);
-                    reject(`Failed to download wasm file. Url: ${wasmUrl}, Error: ${error}`);
+                    resolve(`Failed to download wasm file. Url: ${wasmUrl}, Error: ${error}`);
                 } finally {
                     progress.report({ increment: 100 });
                 }
             }
         );
     });
+}
+
+/**
+ * 获取符合tree-sitter的wasm文件名
+ * @param language 语言标识符
+ * @returns wasm文件名
+ */
+function getWasmId(language: string): string{
+    let wasmId = `tree-sitter-${language}`;
+
+    // VS Code 中对于 C# 语言ID 与tree-sitter 的命名风格不一致，这里做矫正
+    if (language === "csharp") {
+        wasmId = "tree-sitter-c_sharp";
+    }
+    return wasmId;
 }
