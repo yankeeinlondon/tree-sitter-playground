@@ -219,6 +219,9 @@ class AstWebview {
             textDocChangeDispose.dispose();
             changeVisibleRangesDispose.dispose();
             changeSelectionDispose.dispose();
+            
+            // 移除选择样式
+            vscode.window.activeTextEditor?.setDecorations(astWebviewSelectedDecorationType,[]);
             ASTWebviewManager.deleteCache(this.doc.uri);
         });
     }
