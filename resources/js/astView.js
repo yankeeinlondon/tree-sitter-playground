@@ -1,8 +1,11 @@
+const rowContianer = document.getElementById("output-container");
+const rowNumberContainer = document.getElementById("row-number-container");
 const queryContainer = document.getElementById("query-container");
 const queryTextarea = document.getElementById("query-input");
 const showAnonymousCheckbox = document.getElementById("show-anonymous-checkbox");
 const enableQueryCheckbox = document.getElementById("enabled-query-checkbox");
-const editorSyncCheckbox = document.getElementById("editor-sync-checkbox");
+const nodeMappingCheckbox = document.getElementById("node-mapping-checkbox");
+const logOutputCheckbox = document.getElementById("log-output-checkbox");
 
 const vscode = acquireVsCodeApi();
 
@@ -15,7 +18,8 @@ class GlobalState {
     enableQuery = false;
     queryText = "";
     showAnonymousNodes = false;
-    enableEditorSync = true;
+    enableNodeMapping = true;
+    logOutput = false;
 
     /**
      * 设置状态
@@ -27,7 +31,8 @@ class GlobalState {
 
         showAnonymousCheckbox.checked = this.showAnonymousNodes;
         enableQueryCheckbox.checked = this.enableQuery;
-        editorSyncCheckbox.checked = this.enableEditorSync;
+        nodeMappingCheckbox.checked = this.enableNodeMapping;
+        logOutputCheckbox.checked = this.logOutput;
         queryTextarea.value = this.queryText;
         queryContainer.style.display = this.enableQuery ? "block" : "none";
 
@@ -85,8 +90,17 @@ class GlobalState {
      * 设置是否启用编辑器同步
      * @param {boolean} value 是否启用编辑器同步
      */
-    setEnableEditorSync(value) {
-        this.enableEditorSync = value;
+    setEnableNodeMapping(value) {
+        this.enableNodeMapping = value;
+        vscode.setState(this);
+    }
+
+    /**
+     * 设置是否输出日志
+     * @param {boolean} value 
+     */
+    setLogOutput(value){
+        this.logOutput = value;
         vscode.setState(this);
     }
 }
@@ -127,27 +141,50 @@ class GlobalState {
         }
     });
 
+    // 监听显示匿名节点选择框的修改事件，并发送对应状态
     showAnonymousCheckbox.addEventListener("change", (that, event) => {
         const checked = showAnonymousCheckbox.checked;
         vscode.postMessage({ command: "showAnonymousNodes", value: checked });
         globalState.setShowAnonymousNodes(checked);
     });
+
+    // 监听启用查询选择框的修改事件，并发送对应状态
     enableQueryCheckbox.addEventListener("change", (that, event) => {
-        globalState.setEnableQuery(enableQueryCheckbox.checked);
+        const checked = enableQueryCheckbox.checked;
+        vscode.postMessage({ command: "enableQuery", value: checked });
+        globalState.setEnableQuery(checked);
     });
+
+    // 监听查询输入框的修改事件，并发送对应数据
     queryTextarea.addEventListener("change", (that, event) => {
+        const value = queryTextarea.value;
+        vscode.postMessage({ command: "queryNode", value });
         globalState.setQueryText(queryTextarea.value);
+        // TODO 发送数据
     });
-    editorSyncCheckbox.addEventListener("change", (that, event) => {
-        const checked = editorSyncCheckbox.checked;
-        vscode.postMessage({ command: "enableEditorSync", value: checked });
-        globalState.setEnableEditorSync(editorSyncCheckbox.checked);
+
+    // 监听节点映射选择框的修改事件，并发送对应状态
+    nodeMappingCheckbox.addEventListener("change", (that, event) => {
+        const checked = nodeMappingCheckbox.checked;
+        vscode.postMessage({ command: "enableNodeMapping", value: checked });
+        globalState.setEnableNodeMapping(nodeMappingCheckbox.checked);
     });
+
+    // 监听输出日志选择框的修改事件，并发送对应状态
+    logOutputCheckbox.addEventListener("change", (that, event) => {
+        const checked = logOutputCheckbox.checked;
+        vscode.postMessage({ command: "logOutput", value: checked });
+        globalState.setLogOutput(logOutputCheckbox.checked);
+    });
+
+    // 监听body的鼠标点击事件，如果点击的不是节点，则发送一个空的位置数据
     document.body.addEventListener('click', ({ target }) => {
         if (!target.classList.contains("node-link")) {
             vscode.postMessage({ command: "selectEditorText", value: { startIndex: '', endIndex: '', isClick: true } });
         }
     });
+
+    enableQueryCheckbox.parentElement.style.display = 'none';
 })();
 
 /**
@@ -160,8 +197,6 @@ function updateTree(nodes) {
     }
     const nodeArray = typeof nodes === "string" ? JSON.parse(nodes) : nodes;
     const htmls = treeNodeToHtml(nodeArray);
-    const rowContianer = document.getElementById("output-container");
-    const rowNumberContainer = document.getElementById("row-number-container");
     rowContianer.innerHTML = htmls.rows;
     rowNumberContainer.innerHTML = htmls.rowNumbers;
     // 监听节点元素鼠标悬浮事件

@@ -2,11 +2,11 @@
     "name": "tree-sitter-viewer",
     "displayName": "tree-sitter-viewer",
     "description": "Use `Tree-sitter` to parse and view the abstract syntax tree of your code in VS Code.",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "license": "MIT",
-    "publisher": "xiaonatuo",
+    "publisher": "guoxin",
     "author": {
-        "name": "xiaonatuo",
+        "name": "guoxin",
         "email": "g371864209@gmail.com",
         "url": "https://github.com/xiaonatuo"
     },
@@ -27,16 +27,17 @@
     "activationEvents": [
         "onWebviewPanel:tree-sitter-viewer.ast-webview"
     ],
+    "icon": "./resources/icons/tree.png",
     "main": "./dist/extension.js",
-    "enabledApiProposals": [
-        "contribEditorContentMenu"
-    ],
     "contributes": {
         "commands": [
             {
                 "command": "tree-sitter-viewer.view-syntax-tree",
                 "title": "View Syntax Tree",
-                "icon": "$(symbol-class)"
+                "icon": {
+                    "light": "resources/icons/branch-light.svg",
+                    "dark": "resources/icons/branch-dark.svg"
+                }
             }
         ],
         "menus": {
@@ -49,24 +50,8 @@
             "editor/title": [
                 {
                     "command": "tree-sitter-viewer.view-syntax-tree",
-                    "group": "navigation"
-                }
-            ]
-        },
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "tree-sitter-viewer-container",
-                    "title": "Tree Sitter Viewer",
-                    "icon": "resources/icons/tree-sitter-viewer.svg"
-                }
-            ]
-        },
-        "views": {
-            "tree-sitter-viewer-container": [
-                {
-                    "id": "tree-sitter-setting",
-                    "name": "Setting Tree Sitter"
+                    "group": "navigation",
+                    "when": "activeEditor == workbench.editors.files.textFileEditor"
                 }
             ]
         }
@@ -82,7 +67,7 @@
         "pretest": "npm run compile-tests && npm run compile && npm run lint",
         "lint": "eslint src",
         "test": "vscode-test",
-        "copy:treesitter": "cpx node_modules/web-tree-sitter/tree-sitter.wasm dist"
+        "copy:wasm": "cpy node_modules/*/tree-sitter*.wasm dist --flat"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.10",
@@ -92,8 +77,27 @@
         "@typescript-eslint/parser": "^8.17.0",
         "@vscode/test-cli": "^0.0.10",
         "@vscode/test-electron": "^2.4.1",
-        "cpx": "^1.5.0",
+        "@vscode/vsce": "^2.32.0",
+        "cpy-cli": "^5.0.0",
         "eslint": "^9.16.0",
+        "tree-sitter-bash": "^0.23.3",
+        "tree-sitter-c": "^0.23.5",
+        "tree-sitter-c-sharp": "^0.23.1",
+        "tree-sitter-cpp": "^0.23.4",
+        "tree-sitter-css": "^0.23.2",
+        "tree-sitter-go": "^0.23.4",
+        "tree-sitter-haskell": "^0.23.1",
+        "tree-sitter-html": "^0.23.2",
+        "tree-sitter-java": "^0.23.5",
+        "tree-sitter-javascript": "^0.23.1",
+        "tree-sitter-json": "^0.24.8",
+        "tree-sitter-php": "^0.23.11",
+        "tree-sitter-python": "^0.23.6",
+        "tree-sitter-regex": "^0.24.3",
+        "tree-sitter-ruby": "^0.23.1",
+        "tree-sitter-rust": "^0.23.2",
+        "tree-sitter-scala": "^0.23.4",
+        "tree-sitter-typescript": "^0.23.2",
         "ts-loader": "^9.5.1",
         "typescript": "^5.7.2",
         "webpack": "^5.95.0",

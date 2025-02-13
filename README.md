@@ -1,71 +1,58 @@
-# tree-sitter-viewer README
+# tree-sitter-viewer 
 
-This is the README for your extension "tree-sitter-viewer". After writing up a brief description, we recommend including the following sections.
+这是一个类似于 `Tree-sitter` 官网[`游乐场`](https://tree-sitter.github.io/tree-sitter/7-playground.html)的`VS Code`扩展插件。  
+您可以使用该插件方便的查看不同开发语言的抽象语法树。  
+以下是目前支持查看语法树的语言列表：  
+- Bash
+- C
+- C++
+- C#
+- CSS
+- Go
+- Haskell
+- HTML
+- Java
+- JavaScript
+- JSON
+- PHP
+- Python
+- Regex
+- Ruby
+- Rust
+- Scala
+- TypeScript
 
-## Features
+## 功能演示
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+![功能演示](https://raw.githubusercontent.com/xiaonatuo/tree-sitter-viewer/refs/heads/master/resources/demo.gif)
 
-For example if there is an image subfolder under your extension project workspace:
+## 已知问题
 
-\!\[feature X\]\(images/feature-x.png\)
+https://github.com/xiaonatuo/tree-sitter-viewer/issues
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
+## 版本发布
 
 ### 1.0.0
-
-Initial release of ...
+初始版本发布。
 
 ### 1.0.1
+- 优化查看语法树功能仅在文本编辑器中可见
+- 添加树形图标资源，更新 package.json 中的图标配置，删除旧图标文件
 
-Fixed issue #.
+### 1.0.2
+- 修复在编辑代码后语法树渲染错误的问题
 
-### 1.1.0
+### 1.0.3
+- 增加在关闭语法树webview时移除对编辑器中代码的样式修饰
 
-Added features X, Y, and Z.
+### 1.0.4
+- 修复在下载wasm文件失败时不显示通知的问题
+- 优化获取相关语言wasm文件的逻辑
+- 将主流开发语言的wasm文件预置到插件中
+- 在编译打包时，使用cpy替换cpx进行wasm文件的拷贝
 
----
+## 更多信息
 
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+* [Github](https://github.com/xiaonatuo/tree-sitter-viewer)
 
 **Enjoy!**
