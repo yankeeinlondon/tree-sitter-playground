@@ -1,7 +1,7 @@
 {
     "name": "tree-sitter-viewer",
     "displayName": "tree-sitter-viewer",
-    "description": "",
+    "description": "Use `Tree-sitter` to parse and view the abstract syntax tree of your code in VS Code.",
     "version": "1.0.0",
     "license": "MIT",
     "publisher": "xiaonatuo",
@@ -19,8 +19,11 @@
         "vscode": "^1.86.0"
     },
     "categories": [
+        "Visualization",
+        "Programming Languages",
         "Other"
     ],
+    "keywords": ["tree-sitter", "ast", "parser"],
     "activationEvents": [
         "onWebviewPanel:tree-sitter-viewer.ast-webview"
     ],
