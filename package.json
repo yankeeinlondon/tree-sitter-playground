@@ -1,7 +1,7 @@
 {
     "name": "tree-sitter-viewer",
-    "displayName": "tree-sitter-viewer",
-    "description": "Use `Tree-sitter` to parse and view the abstract syntax tree of your code in VS Code.",
+    "displayName": "%displayName%",
+    "description": "%description%",
     "version": "1.0.4",
     "license": "MIT",
     "publisher": "guoxin",
@@ -33,7 +33,7 @@
         "commands": [
             {
                 "command": "tree-sitter-viewer.view-syntax-tree",
-                "title": "View Syntax Tree",
+                "title": "%command.viewSyntaxTree%",
                 "icon": {
                     "light": "resources/icons/branch-light.svg",
                     "dark": "resources/icons/branch-dark.svg"
@@ -57,7 +57,7 @@
         }
     },
     "scripts": {
-        "postinstall": "npm run copy:treesitter",
+        "postinstall": "npm run copy:wasm",
         "vscode:prepublish": "npm run package",
         "compile": "webpack",
         "watch": "webpack --watch",
