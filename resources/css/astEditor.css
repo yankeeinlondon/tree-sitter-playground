@@ -22,53 +22,64 @@
 }
 
 .split-line div {
-    float: left;
-    margin-right: 10px;
+  float: left;
+  margin-right: 10px;
+  margin-left: 16px;
+  color: #CCCCCC;
 }
 
 .query-container {
-    display: none;
-    margin-top: 0;
+  display: none;
+  margin-top: 0;
 }
 
 .tool-item {
-    /* padding: 2px 0; */
-    display: flex;
-    align-items: center;
+  /* padding: 2px 0; */
+  display: flex;
+  align-items: center;
 }
-html, body{
+
+html,
+body {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
+
+body {
+  padding: 0;
+}
+
 hr {
-    margin: 10px 0;
-    border: 0;
-    background-color: #3c3c3c;
-    height: 1px;
-    padding: 0 var(--input-padding-horizontal);
+  margin: 10px 0;
+  border: 0;
+  background-color: #3c3c3c;
+  height: 1px;
+  padding: 0 var(--input-padding-horizontal);
 }
 
 .tool-container {
-    display: flex;
-    flex-direction: row-reverse;
-    margin: 5px 0;
+  display: flex;
+  flex-direction: row-reverse;
+  margin: 5px 0;
 }
 
 .row-number-container .row {
-    margin-right: 20px;
-    color: var(--vscode-editorLineNumber-foreground);
-    font-family: Consolas, "Courier New", monospace;
+  margin-right: 20px;
+  color: var(--vscode-editorLineNumber-foreground);
+  font-family: Consolas, "Courier New", monospace;
+  text-align: right;
+  display: block;
 }
 
 div#row-number-container {
-    text-align: right;
+  text-align: right;
 }
 
 .tree-container {
-    display: flex;
-    flex-direction: row;
-    /* height: 100%; */
+  display: flex;
+  flex-direction: row;
+  /* height: 100%; */
 }
 
 /* Common Scrollbar Styles */
@@ -265,6 +276,7 @@ input[type="checkbox"]:focus {
 #output-container {
   /* white-space: pre; */
   font-family: var(--vscode-editor-font-family);
+  flex: 1;
 }
 
 ol,
@@ -278,8 +290,8 @@ ul.tree-child {
 }
 
 ul.tree-child.tree-root {
-    padding-left: 0;
-    border-left: 0;
+  padding-left: 0;
+  border-left: 0;
 }
 
 li.tree-row {
@@ -298,43 +310,51 @@ li.tree-row {
   height: 20px;
 }
 
+.node-str {
+  padding-right: 20px;
+}
+
 span.position-info {
-    color: #5C6370;
-    margin-left: 10px;
+  color: #5C6370;
+  margin-left: 10px;
 }
 
 span.indent {
-    border-left: 1px solid #353535;
+  border-left: 1px solid #353535;
 }
 
-#query-input{
+#query-input {
   font-family: var(--vscode-editor-font-weight);
   resize: vertical;
   margin-top: 5px;
   min-height: 38px;
 }
+
 #output-container-scroll {
-  padding: 0 8px;
+  padding: 0 19px;
   overflow: auto;
   flex: 1;
+  top: -10px;
 }
 
 #output-container a {
   text-decoration: none;
   border: 1px solid #FFFFFF00;
 }
-
-.node-link-selected {
-    border: 1px solid var(--vscode-focusBorder) !important;
-    border-radius: 4px;
-    text-align: center;
-    /* padding-left: 6px; */
+.node-link{
+  border: 1px solid #00000000;
+  border-radius: 4px;
+  text-align: center;
 }
+
 .node-link-selected:focus {
   outline-color: var(--vscode-focusBorder) !important;
+  background-color: #4daafc50;
 }
+
 #output-container a:hover {
-  text-decoration: underline;
+  background-color: #4daafc50;
+  text-decoration: none;
 }
 
 #output-container a.node-link.anonymous {
@@ -467,7 +487,10 @@ span.indent {
 }
 
 /* Spacing Utilities */
-#language-select, input[type="checkbox"] {margin-left: 20px;}
+#language-select,
+input[type="checkbox"] {
+  margin-left: 20px;
+}
 
 #language-select {
   margin-right: 16px;
@@ -479,5 +502,44 @@ label {
 }
 
 .query-container label {
-    cursor: default;
+  cursor: default;
+}
+
+.split-line {
+  padding: 0 16px;
+  top: -10px;
+}
+
+#row-resize {
+  width: 100%;
+  height: 10px;
+  background: #00000000;
+  cursor: n-resize;
+  border: 0 !important;
+  margin-top: -10px;
+  z-index: 1;
+}
+
+.indent.hit,
+.hit .node-str {
+  border-left-width: 1px;
+  border-left-style: inset;
+}
+
+.hit .node-str {
+  border-top-width: 1px;
+  border-top-style: inset;
+  line-height: 20px;
+  margin-top: 2px;
+}
+
+.hit .capture-name {
+  border-top-width: 1px;
+  border-top-style: inset;
+  margin-top: 2px;
+  border-radius: 0px 4px 4px 4px;
+  margin-left: -2px;
+  line-height: 15px;
+  padding: 0 4px;
+  cursor: pointer;
 }

@@ -4,9 +4,19 @@ import * as vscode from "vscode";
 import Parser, { Edit, Point, SyntaxNode, TreeCursor } from "web-tree-sitter";
 
 // wasm文件目录
-const WASM_DIR = __dirname;
+const WASM_DIR = path.join(__dirname, 'tree-sitter');
 // 语言对应的Parser实例
 const TS_PARSER = new Map<string, Parser>();
+
+/**
+ * Tree-sitter 查询语句错误
+ */
+export interface QueryError extends RangeError{
+    // 错误所在字符索引
+    index: number;
+    // 字符长度
+    length: number;
+}
 
 /**
  * 表示代码编辑范围，用于更新语法树
@@ -45,6 +55,17 @@ export class EditRange implements Edit {
     static asTSPoint(position: vscode.Position): Parser.Point {
         const { line, character } = position;
         return { row: line, column: character };
+    }
+
+    /**
+     * 将Tree-sitter的Point转换为VSCode的Position
+     * @param Position Tree-sitter的Point对象
+     * @returns VSCode的Position对象
+     */
+    static asVsPosition(point: Parser.Point):vscode.Position{
+        const {row, column} = point;
+
+        return new vscode.Position(row, column);
     }
 }
 
@@ -113,7 +134,11 @@ export class MiniNode {
         this.fieldName = walk?.currentFieldName || "";
     }
 }
-
+export interface MiniCapture{
+    pattern: number;
+    name: string;
+    node: MiniNode;
+}
 /**
  * 递归处理语法树节点
  * @param node 语法树节点
@@ -191,7 +216,7 @@ export async function getParser(language: string) {
  * @returns Parser实例
  */
 async function initTSParser(language: string) {
-    await Parser.init();
+    await Parser.init({locateFile: (pathName:string)=> path.join(WASM_DIR, pathName)});
     const parser = new Parser();
     const wasmPath = path.resolve(WASM_DIR, `${getWasmId(language)}.wasm`);
     const languageWasm = await Parser.Language.load(wasmPath);

@@ -184,7 +184,6 @@ class GlobalState {
         }
     });
 
-    enableQueryCheckbox.parentElement.style.display = 'none';
 })();
 
 /**

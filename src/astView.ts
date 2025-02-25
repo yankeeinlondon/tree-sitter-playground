@@ -1,7 +1,7 @@
 import path from "path";
 import * as vscode from "vscode";
 import Parser, { Tree } from "web-tree-sitter";
-import { EditRange, editTree, getParser, handlerSyntaxNodeByRecursion, MiniNode } from "./parser";
+import { EditRange, editTree, getParser, handlerSyntaxNodeByRecursion, MiniCapture, MiniNode } from "./tsParser";
 
 // 日志输出
 const logOutput = vscode.window.createOutputChannel("Tree-Sitter-Viewer", { log: true });
@@ -15,7 +15,7 @@ const astWebviewSelectedDecorationType = vscode.window.createTextEditorDecoratio
 /**
  * webview状态数据类型
  */
-interface AstWebviewState {
+export interface AstWebviewState {
     // 文档的uri地址
     docUri: string;
     // 扁平化的语法树节点数组
@@ -178,7 +178,7 @@ class AstWebview {
                 enableQuery: false,
                 queryText: "",
                 showAnonymousNodes: false,
-                enableNodeMapping: true,
+                enableNodeMapping: false,
                 logOutput: false,
             };
         }
@@ -204,10 +204,6 @@ class AstWebview {
         const textDocChangeDispose = vscode.workspace.onDidChangeTextDocument((event) =>
             this.handleChangeTextDocumentEvent(event)
         );
-        // 监听文本编辑器的滚动事件
-        const changeVisibleRangesDispose = vscode.window.onDidChangeTextEditorVisibleRanges((event) =>
-            this.handleChangeTextEditorVisibleRangesEvent(event)
-        );
         // 监听编辑器的点击和文本选中事件
         const changeSelectionDispose = vscode.window.onDidChangeTextEditorSelection((event) =>
             this.handleTextEditorChangeSelectEvent(event)
@@ -217,11 +213,10 @@ class AstWebview {
             receiveMessageDispose.dispose();
             webviewSateChangeDispose.dispose();
             textDocChangeDispose.dispose();
-            changeVisibleRangesDispose.dispose();
             changeSelectionDispose.dispose();
-            
+
             // 移除选择样式
-            vscode.window.activeTextEditor?.setDecorations(astWebviewSelectedDecorationType,[]);
+            vscode.window.activeTextEditor?.setDecorations(astWebviewSelectedDecorationType, []);
             ASTWebviewManager.deleteCache(this.doc.uri);
         });
     }
@@ -267,10 +262,14 @@ class AstWebview {
                 break;
             case "enableQuery":
                 this.state.enableQuery = value;
+                if (this.state.queryText) {
+                    this.querySyntaxNode(this.state.queryText)
+                }
                 break;
             case "queryNode":
                 this.state.queryText = value;
-            // TODO 实现节点查询功能
+                this.querySyntaxNode(value)
+                break;
             case "logOutput":
                 this.state.logOutput = value;
                 this.setLogOutput();
@@ -311,28 +310,6 @@ class AstWebview {
                 await this.refreshWebview();
             }
         }
-    }
-
-    /**
-     * 处理文本编辑器可见范围变化事件
-     * @param {vscode.TextEditorVisibleRangesChangeEvent} event 文本编辑器可见范围变化事件
-     */
-    private handleChangeTextEditorVisibleRangesEvent(event: vscode.TextEditorVisibleRangesChangeEvent) {
-        // 使用此方式同步滚动语法树web视图的体验不太好，暂时注释该代码
-        /*const { textEditor, visibleRanges } = event;
-        const eventDoc = textEditor.document;
-        const activeEditor = vscode.window.activeTextEditor;
-        if (
-            activeEditor?.document.uri.toString() === eventDoc.uri.toString() &&
-            this.state.enableNodeMapping &&
-            this.visible &&
-            this.doc.uri.toString() === eventDoc.uri.toString()
-        ) {
-            this._webviewPanel.webview.postMessage({
-                command: "scroll",
-                data: JSON.stringify(visibleRanges[0].start),
-            });
-        } */
     }
 
     /**
@@ -378,11 +355,37 @@ class AstWebview {
     }
 
     /**
+     * 查询语法树节点
+     * @param queryText 查询语句
+     */
+    querySyntaxNode(queryText: string) {
+        try {
+            let flatCaptures: MiniCapture[] = [];
+            if (queryText && this.state.enableQuery) {
+                const query = this.tsParser.getLanguage().query(queryText);
+                const matches = query.matches(this.astTree.rootNode);
+                for(const {pattern, captures} of matches){
+                    for(const {name, node} of captures){
+                        flatCaptures.push({ pattern, name, node: new MiniNode(node) });
+                    }
+                }
+                
+            }
+            this._webviewPanel.webview.postMessage({ command: 'queryDone', data: flatCaptures });
+        } catch (error: any) {
+            const data = Object.assign({}, error);
+            // 必须进行一次显示赋值
+            data.message = error.message;
+            this._webviewPanel.webview.postMessage({ command: 'queryError', data })
+        }
+    }
+
+    /**
      * 设置日志输出
      */
     private setLogOutput() {
         if (this.state.logOutput) {
-            this.tsParser.setLogger((message, params: { [param: string]: string }, type) => {
+            this.tsParser.setLogger((message: string, params: { [param: string]: string }, type: any) => {
                 // 通过判断type以适配不同版本的日志接口
                 if (type) {
                     let paramsText = "";
@@ -434,7 +437,7 @@ class AstWebview {
     private getHtml(): string {
         const styleVSCodeUri = this.asWebviewUri("css", "vscode.css");
         const astEditorUri = this.asWebviewUri("css", "astEditor.css");
-        const scriptUri = this.asWebviewUri("js", "astView.js");
+        const scriptUri = this.asWebviewUri("..", "dist/webviewScript.js");
         const cspSource = this._webviewPanel.webview.cspSource;
         const nonce = getNonce();
         return /* html */ `
@@ -442,16 +445,17 @@ class AstWebview {
         <html lang="en">
             <head>
                 <meta charset="UTF-8" />
-                <!-- 使用内容安全策略限制资源加载 -->
+                <!-- 使用内容安全策略限制资源加载
                 <meta
                     http-equiv="Content-Security-Policy"
                     content="default-src 'none'; img-src ${cspSource}; style-src ${cspSource}; script-src 'nonce-${nonce}';"/>
+                 -->
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <title>Syntax Tree</title>
                 <link href="${styleVSCodeUri}" rel="stylesheet" />
                 <link href="${astEditorUri}" rel="stylesheet" />
             </head>
-            <body>
+            <body data-vscode-context='{"preventDefaultContextMenuItems": true}'>
                 <div class="tool-container">
                     <div class="tool-item">
                         <input type="checkbox" id="log-output-checkbox" ></input>
@@ -470,11 +474,10 @@ class AstWebview {
                         <label for="enabled-query-checkbox">启用查询</label>
                     </div><br>
                 </div>
-                <div class="query-container" id="query-container">
-                    <label>查询语句：</label>
-                    <textarea id="query-input" placeholder="此功能还没有实现。qwq"></textarea>
+                <div class="query-container" id="query-container" style="border-bottom: 1px solid #333333; height: 150px;">
                 </div>
-                <div class="split-line"><div>Tree: </div><hr /></div>
+                <div id="row-resize"></div>
+                <div class="split-line"><div>Abstract Syntax Tree: </div></div>
                 <div id="output-container-scroll">
                     <div class="tree-container" id="tree-container">
                         <div class="row-number-container" id="row-number-container"></div>
@@ -483,7 +486,7 @@ class AstWebview {
                     </div>
                 </div>
             </body>
-            <script nonce="${nonce}" src="${scriptUri}"></script>
+            <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
         </html>
         `;
     }

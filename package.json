@@ -23,7 +23,11 @@
         "Programming Languages",
         "Other"
     ],
-    "keywords": ["tree-sitter", "ast", "parser"],
+    "keywords": [
+        "tree-sitter",
+        "ast",
+        "parser"
+    ],
     "activationEvents": [
         "onWebviewPanel:tree-sitter-viewer.ast-webview"
     ],
@@ -57,17 +61,16 @@
         }
     },
     "scripts": {
-        "postinstall": "npm run copy:wasm",
         "vscode:prepublish": "npm run package",
-        "compile": "webpack",
-        "watch": "webpack --watch",
-        "package": "webpack --mode production --devtool hidden-source-map",
+        "compile": "npm run copy:wasm && webpack",
+        "watch": "npm run copy:wasm && webpack --watch",
+        "package": "npm run copy:wasm && webpack --mode production --devtool hidden-source-map",
         "compile-tests": "tsc -p . --outDir out",
         "watch-tests": "tsc -p . -w --outDir out",
         "pretest": "npm run compile-tests && npm run compile && npm run lint",
         "lint": "eslint src",
         "test": "vscode-test",
-        "copy:wasm": "cpy node_modules/*/tree-sitter*.wasm dist --flat"
+        "copy:wasm": "cpy node_modules/*/tree-sitter*.wasm dist/tree-sitter --flat"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.10",
@@ -79,7 +82,11 @@
         "@vscode/test-electron": "^2.4.1",
         "@vscode/vsce": "^2.32.0",
         "cpy-cli": "^5.0.0",
+        "css-loader": "^7.1.2",
         "eslint": "^9.16.0",
+        "file-loader": "^6.2.0",
+        "monaco-editor-webpack-plugin": "^6.0.0",
+        "style-loader": "^4.0.0",
         "tree-sitter-bash": "^0.23.3",
         "tree-sitter-c": "^0.23.5",
         "tree-sitter-c-sharp": "^0.23.1",
@@ -104,6 +111,8 @@
         "webpack-cli": "^5.1.4"
     },
     "dependencies": {
+        "monaco-editor": "^0.30.1",
+        "tree-sitter-query": "^0.1.0",
         "web-tree-sitter": "^0.24.7"
     }
 }

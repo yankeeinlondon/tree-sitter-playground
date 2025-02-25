@@ -1,12 +1,16 @@
 //@ts-check
 'use strict';
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 const path = require('path');
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 
-/** @type WebpackConfig */
+/**
+ *  extension.ts文件编译配置
+ * @type WebpackConfig 
+ * */
 const extensionConfig = {
   target: 'node', // VS Code 扩展运行在 Node.js 环境中
   mode: 'none', // 打包模式为 none，保持源代码尽可能接近原始状态（打包时设置为 'production'）
@@ -42,6 +46,50 @@ const extensionConfig = {
   devtool: 'nosources-source-map', // 使用 nosources-source-map 生成 source map
   infrastructureLogging: {
     level: "log", // 启用日志记录，用于问题匹配器
-  },
+  }
 };
-module.exports = [ extensionConfig ]; // 导出配置
+
+/**
+ * webviewScript.ts文件编译配置 
+ * @type WebpackConfig 
+ * */
+const webviewConfig = {
+  target: ['web', 'es2022'], // 针对浏览器环境
+  mode: 'none',
+  entry:  './src/webview/webviewScript.ts',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'webviewScript.js',
+    libraryTarget: 'umd'
+  },
+  resolve: {
+    extensions: ['.ts', '.js']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'ts-loader'
+          }
+        ]
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.ttf$/,
+        use: ['file-loader']
+      }
+    ]
+  },
+  devtool: 'nosources-source-map',
+  plugins: [
+    new MonacoWebpackPlugin({languages: ['scheme'], features: []})
+  ]
+};
+
+module.exports = [extensionConfig, webviewConfig]; // 导出两个配置
