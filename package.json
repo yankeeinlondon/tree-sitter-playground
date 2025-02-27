@@ -86,6 +86,7 @@
         "eslint": "^9.16.0",
         "file-loader": "^6.2.0",
         "monaco-editor-webpack-plugin": "^6.0.0",
+        "node-gyp": "^11.1.0",
         "style-loader": "^4.0.0",
         "tree-sitter-bash": "^0.23.3",
         "tree-sitter-c": "^0.23.5",
