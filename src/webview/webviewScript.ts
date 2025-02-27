@@ -249,7 +249,7 @@ function treeNodeToHtml(nodes: MiniNode[]): any {
                 <span class="position-info">[${startRow},${startColumn}] - [${endRow},${endColumn}]</span>
                 </div>
             </div>`;
-        rowNumbers += `<div class="row row-${startRow}" id="rc-${startRow}-${startColumn}">${i + 1}</div>`;
+        rowNumbers += `<div class="row row-${startRow}" id="rc-${startRow}-${startColumn}"><div class="row-num">${i + 1}</div><div class="arrow"></div></div>`;
     }
     return { rows, rowNumbers };
 }

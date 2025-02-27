@@ -6,19 +6,8 @@ const LANGUAGE_ID = 'tree-sitter-query';
 // @ts-ignore
 self.MonacoEnvironment = {
     getWorkerUrl: function (moduleId: any, label: string) {
-        if (label === 'json') {
-            return './json.worker.js';
-        }
-        if (label === 'css' || label === 'scss' || label === 'less') {
-            return './css.worker.js';
-        }
-        if (label === 'html' || label === 'handlebars' || label === 'razor') {
-            return './html.worker.js';
-        }
-        if (label === 'typescript' || label === 'javascript') {
-            return './ts.worker.js';
-        }
-        return './editor.worker.js';
+        // @ts-ignore
+        return editorWorkJsUri;
     }
 };
 // 注册语言
@@ -143,7 +132,8 @@ export class QueryEditor {
             renderValidationDecorations: "on",
             quickSuggestions: false, // 关闭代码建议
             suggestOnTriggerCharacters: false, // 关闭触发建议
-            hover: { sticky: false }
+            hover: { sticky: false },
+            folding: false
         };
         this.setTheme(options.themeConfig || {});
         this.model = monaco.editor.createModel('', 'tree-sitter-query')
@@ -195,7 +185,7 @@ export class QueryEditor {
                 endLineNumber: end.lineNumber,
                 endColumn: end.column,
                 message: message,
-                severity: monaco.MarkerSeverity.Error
+                severity: monaco.MarkerSeverity.Hint
             }];
         }
         monaco.editor.setModelMarkers(this.model, 'query-syntax-check', this.errors);

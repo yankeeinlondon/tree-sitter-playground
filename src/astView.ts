@@ -439,6 +439,7 @@ class AstWebview {
         const styleVSCodeUri = this.asWebviewUri("css", "vscode.css");
         const astEditorUri = this.asWebviewUri("css", "astEditor.css");
         const scriptUri = this.asWebviewUri("..", "dist/webviewScript.js");
+        const editorWorkJsUri = this.asWebviewUri("..", "dist/editor.worker.js");
         const cspSource = this._webviewPanel.webview.cspSource;
         const nonce = getNonce();
         return /* html */ `
@@ -455,6 +456,7 @@ class AstWebview {
                 <title>Syntax Tree</title>
                 <link href="${styleVSCodeUri}" rel="stylesheet" />
                 <link href="${astEditorUri}" rel="stylesheet" />
+                <script nonce="${nonce}">const editorWorkJsUri='${editorWorkJsUri}';</script>
             </head>
             <body data-vscode-context='{"preventDefaultContextMenuItems": true}'>
                 <div class="tool-container">
