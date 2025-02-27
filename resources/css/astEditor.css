@@ -347,7 +347,7 @@ span.indent {
   text-align: center;
 }
 
-.node-link-selected:focus {
+.node-link-selected, .node-link-selected:focus {
   outline-color: var(--vscode-focusBorder) !important;
   background-color: #4daafc50;
 }
@@ -519,7 +519,12 @@ label {
   margin-top: -10px;
   z-index: 1;
 }
-
+.node-str{
+  border: 1px solid #FFFFFF00;
+  border-bottom: 0;
+  margin-top: 2px;
+}
+/* 
 .indent.hit,
 .hit .node-str {
   border-left-width: 1px;
@@ -531,11 +536,9 @@ label {
   border-top-style: inset;
   line-height: 20px;
   margin-top: 2px;
-}
+} */
 
 .hit .capture-name {
-  border-top-width: 1px;
-  border-top-style: inset;
   margin-top: 2px;
   border-radius: 0px 4px 4px 4px;
   margin-left: -2px;

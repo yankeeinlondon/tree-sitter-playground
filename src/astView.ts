@@ -262,8 +262,10 @@ class AstWebview {
                 break;
             case "enableQuery":
                 this.state.enableQuery = value;
-                if (this.state.queryText) {
+                if (this.state.enableQuery && this.state.queryText) {
                     this.querySyntaxNode(this.state.queryText)
+                }else{
+                    this.querySyntaxNode('')
                 }
                 break;
             case "queryNode":
@@ -324,7 +326,6 @@ class AstWebview {
             textEditor.setDecorations(astWebviewSelectedDecorationType, []);
         }
         if (
-            this.state.enableNodeMapping &&
             !this._webviewPanel.active &&
             activeEditor?.document.uri.toString() === eventDoc.uri.toString() &&
             this.visible &&

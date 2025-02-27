@@ -1,6 +1,7 @@
 import { AstWebviewState } from "../astView";
 import { MiniCapture, MiniNode, QueryError } from "../tsParser";
 import { QueryEditor, QueryEditorTheme } from "./monaco";
+import { decorativeResults } from "./queryResult";
 
 const resizeElement = document.getElementById("row-resize") as HTMLElement;
 const rowContianer = document.getElementById("output-container") as HTMLElement;
@@ -28,77 +29,6 @@ const VIEW_STATE: AstWebviewState = {
     enableNodeMapping: false,
     logOutput: false,
 };
-
-class QueryResultTool {
-    private static colors: string[] = ['#80cbc4', '#ffb757', '#9ca3af', '#e0b8ff', '#ff9492', '#56d364', '#a5d6ff', '#ffa198', '#d2a8ff', '#ff7b72', '#7ee787', '#ffa657', '#79c0ff'];
-    private static visabledNode: Set<any> = new Set();
-
-    private static colorChangeElements: HTMLElement[] = [];
-    private static captureNameNodes: HTMLElement[] = [];
-
-    static queryHit(captures: MiniCapture[] = []) {
-        const captureNames: string[] = [];
-        this.clear();
-        for (const { name, node } of captures) {
-            const nameIndex = getNnameIndex(name);
-            const color = this.colors[nameIndex];
-            const mainElement = document.querySelector<HTMLElement>(`.row.row-id-${node.id}`);
-            if (mainElement) {
-                this.colorChangeElements.push(mainElement);
-                mainElement.classList.add(`hit`);
-                const strNode = mainElement.querySelector<HTMLElement>('.node-str');
-                if (strNode) {
-                    strNode.style.borderColor = color;
-                    this.colorChangeElements.push(strNode);
-                }
-                const linkNode = mainElement.querySelector<HTMLElement>('.node-link');
-                if (linkNode) {
-                    linkNode.style.color = color;
-                    this.colorChangeElements.push(linkNode);
-                }
-                const deep = mainElement.getAttribute('data-deep')
-                if (deep) {
-                    document.querySelectorAll<HTMLElement>(`.row.sp-${node.id} .indent.d-${deep}`).forEach(element => {
-                        element.classList.add(`hit`);
-                        element.style.borderColor = color;
-                        this.colorChangeElements.push(element);
-                    })
-                }
-                let captureNameNode = mainElement.querySelector<HTMLElement>('.capture-name');
-                if (!captureNameNode) {
-                    captureNameNode = document.createElement('span');
-                    captureNameNode.classList.add('capture-name');
-                    mainElement.appendChild(captureNameNode);
-                    this.captureNameNodes.push(captureNameNode);
-                }
-                captureNameNode.style.color = color;
-                captureNameNode.style.borderColor = color;
-                captureNameNode.style.backgroundColor = color + '40';
-                captureNameNode.textContent = '@' + name;
-
-            }
-        }
-
-        function getNnameIndex(name: string): number {
-            let index = captureNames.indexOf(name);
-            if (index === -1) {
-                captureNames.push(name);
-                index = captureNames.length - 1;
-            }
-            return index % 13;
-        }
-    }
-    static clear() {
-        this.colorChangeElements.forEach(elem=>{
-            elem.classList.remove('hit');
-            elem.style.color = '';
-            elem.style.borderColor = '';
-        });
-        this.captureNameNodes.forEach(elem=>{
-            elem.remove();
-        });
-    }
-}
 
 /**
  * 监听webview发送的消息
@@ -131,13 +61,14 @@ function listenWebviewMessage(queryEditor: QueryEditor) {
                         item.classList.remove("node-link-selected");
                     });
                     element.classList.add("node-link-selected");
+                    element.click();
                     element.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
                 break;
             case 'queryDone':
                 queryEditor.showQueryError(null);
                 const captures = data as MiniCapture[];
-                QueryResultTool.queryHit(captures);
+                decorativeResults(captures, VIEW_STATE);
                 break;
             case 'queryError':
                 const error = data as QueryError;
@@ -285,11 +216,13 @@ function treeNodeToHtml(nodes: MiniNode[]): any {
     let idPath: string[] = [];
     for (let i = 0; i < nodes.length; i++) {
         const { id, type, fieldName, level, isNamed, startIndex, endIndex, startPosition, endPosition } = nodes[i];
+
+        // 根据节点的深度，计算出ID路径，并转换为锚点类选择器
         const diff = level - prevLevel;
         if (diff == 0) {
             idPath = idPath.slice(0, level);
         } else if (diff < 0) {
-            idPath = idPath.slice(0, diff);
+            idPath = idPath.slice(0, diff - 1);
         }
         idPath.push('sp-' + id);
         prevLevel = level;
