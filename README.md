@@ -51,6 +51,10 @@ https://github.com/xiaonatuo/tree-sitter-viewer/issues
 - 将主流开发语言的wasm文件预置到插件中
 - 在编译打包时，使用cpy替换cpx进行wasm文件的拷贝
 
+### 1.0.5
+- 增加语法树查询功能
+- 调整在不勾选映射节点的情况下，点击代码编辑器时语法树视图自动跳转对应语法节点位置
+
 ## 更多信息
 
 * [Github](https://github.com/xiaonatuo/tree-sitter-viewer)
