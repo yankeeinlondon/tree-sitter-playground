@@ -55,6 +55,12 @@ https://github.com/xiaonatuo/tree-sitter-viewer/issues
 - 增加语法树查询功能
 - 调整在不勾选映射节点的情况下，点击代码编辑器时语法树视图自动跳转对应语法节点位置
 
+### 1.0.6
+- 修复语法树查询结果在页面渲染不全的bug
+- 优化资源管理器中右键查看语法树菜单的显示时机
+- 调整捕获名称渲染颜色的优先级
+- 优化Ast视图页面样式
+
 ## 更多信息
 
 * [Github](https://github.com/xiaonatuo/tree-sitter-viewer)
