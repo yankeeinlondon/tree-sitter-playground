@@ -61,7 +61,8 @@ hr {
 .tool-container {
   display: flex;
   flex-direction: row-reverse;
-  margin: 5px 0;
+  margin: 5px 20px;
+  flex-wrap: wrap-reverse;
 }
 
 .row-number-container .row {
@@ -75,10 +76,9 @@ hr {
   margin-top: 2px;
 }
 .row-number-container .arrow{
-  display: none;
-  flex: 1;
   text-align: center;
   margin-top: 2px;
+  width: 26px;
 }
 
 .row-number-container:hover .arrow{
@@ -540,7 +540,7 @@ label {
   margin-top: 2px;
 }
 
-.hit .capture-name {
+.capture-name {
   margin-top: 2px;
   border-radius: 0px 4px 4px 4px;
   margin-left: -2px;

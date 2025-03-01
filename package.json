@@ -48,7 +48,8 @@
             "explorer/context": [
                 {
                     "command": "tree-sitter-viewer.view-syntax-tree",
-                    "group": "navigation"
+                    "group": "navigation",
+                    "when": "resourceLangId !== 'unknown'"
                 }
             ],
             "editor/title": [

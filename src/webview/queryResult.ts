@@ -1,6 +1,6 @@
 import { AstWebviewState } from "../astView";
 import { MiniCapture } from "../tsParser";
-const COLORS: string[] = ['#80cbc4', '#ffb757', '#9ca3af', '#e0b8ff', '#ff9492', '#56d364', '#a5d6ff', '#ffa198', '#d2a8ff', '#ff7b72', '#7ee787', '#ffa657', '#79c0ff'];
+const COLORS: string[] = ['#80cbc4', '#ffb757', '#e0b8ff', '#ff9492', '#56d364', '#a5d6ff', '#ffa198', '#d2a8ff', '#ff7b72', '#7ee787', '#ffa657', '#9ca3af', '#79c0ff'];
 let NAMES: string[] = [];
 const resultDecorativerCache: Map<number, ResultDecorativer> = new Map();
 
@@ -65,14 +65,16 @@ class ResultDecorativer {
      * 重置颜色样式
      */
     remove() {
-        this.syntaxNodeDom && this.syntaxNodeDom.classList.remove('hit');
-        this.topLineDom && (this.topLineDom.style.borderTop = '');
+        if (this.topLineDom) {
+            this.topLineDom.style.borderTop = '';
+            this.topLineDom.style.borderLeft = '';
+        }
         this.textDom && (this.textDom.style.color = '');
         this.identLineDoms && this.identLineDoms.forEach(dom => {
-            dom.classList.remove(`hit`);
             dom.style.borderLeft = '';
         });
         this.captureNameDom && this.captureNameDom.remove();
+        setTimeout(() => { }, 0)
     }
 
     /**
@@ -91,20 +93,11 @@ class ResultDecorativer {
      * 渲染样式
      */
     render() {
-        this.setSyntaxNodeDom();
         this.setTopLineStyle();
         this.setNodeTypeTextStyle();
         this.setIdentLineStyle();
         this.setCaptureNameDomStyle();
-    }
-
-    /**
-     * 给捕获的语法树节点DOM添加样式类
-     */
-    setSyntaxNodeDom() {
-        if (this.syntaxNodeDom) {
-            this.syntaxNodeDom.classList.add(`hit`);
-        }
+        setTimeout(() => { }, 0)
     }
 
     /**
@@ -133,7 +126,6 @@ class ResultDecorativer {
         if (this.identLineDoms) {
             // 获取缩进线的DOM
             this.identLineDoms.forEach(element => {
-                // element.classList.add(`hit`);
                 element.style.borderLeft = `1px inset ${this.color}`;
             });
         }
@@ -160,7 +152,7 @@ class ResultDecorativer {
                 this.identLineDoms && this.identLineDoms.forEach(dom => {
                     dom.style.borderLeft = `1px solid ${this.color}`;
                 })
-                if(this.state?.enableNodeMapping){
+                if (this.state?.enableNodeMapping) {
                     this.textDom && this.textDom.click();
                 }
             });
