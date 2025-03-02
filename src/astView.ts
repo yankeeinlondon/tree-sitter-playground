@@ -263,14 +263,14 @@ class AstWebview {
             case "enableQuery":
                 this.state.enableQuery = value;
                 if (this.state.enableQuery && this.state.queryText) {
-                    this.querySyntaxNode(this.state.queryText)
+                    this.querySyntaxNode(this.state.queryText);
                 }else{
-                    this.querySyntaxNode('')
+                    this.querySyntaxNode('');
                 }
                 break;
             case "queryNode":
                 this.state.queryText = value;
-                this.querySyntaxNode(value)
+                this.querySyntaxNode(value);
                 break;
             case "logOutput":
                 this.state.logOutput = value;
@@ -377,7 +377,7 @@ class AstWebview {
             const data = Object.assign({}, error);
             // 必须进行一次显示赋值
             data.message = error.message;
-            this._webviewPanel.webview.postMessage({ command: 'queryError', data })
+            this._webviewPanel.webview.postMessage({ command: 'queryError', data });
         }
     }
 

@@ -78,14 +78,14 @@ monaco.languages.registerCompletionItemProvider(LANGUAGE_ID, {
             position.lineNumber,
             word.endColumn
         );
-        const words = [...keywords]
+        const words = [...keywords];
         words.map((item) => {
             return {
                 label: item,
                 kind: monaco.languages.CompletionItemKind.Keyword,
                 insertText: item,
                 range: range
-            }
+            };
         });
         const suggestions = words.map((item) => {
             return {
@@ -93,7 +93,7 @@ monaco.languages.registerCompletionItemProvider(LANGUAGE_ID, {
                 kind: monaco.languages.CompletionItemKind.Keyword,
                 insertText: item,
                 range: range
-            }
+            };
         });
         return { suggestions };
     }
@@ -136,7 +136,7 @@ export class QueryEditor {
             folding: false
         };
         this.setTheme(options.themeConfig || {});
-        this.model = monaco.editor.createModel('', 'tree-sitter-query')
+        this.model = monaco.editor.createModel('', 'tree-sitter-query');
     }
 
     /**
@@ -197,11 +197,11 @@ export class QueryEditor {
      */
     private setTheme(themeConfig: QueryEditorTheme) {
         let baseTheme: monaco.editor.BuiltinTheme = 'vs-dark', colors = {};
-        const themeKind = themeConfig.themeKind
+        const themeKind = themeConfig.themeKind;
         if (themeKind && themeKind.includes('light')) {
             baseTheme = 'vs';
         }
-        themeConfig.colors && (colors = themeConfig.colors)
+        themeConfig.colors && (colors = themeConfig.colors);
         monaco.editor.defineTheme("tree-sitter-theme", {
             base: baseTheme,
             inherit: true,

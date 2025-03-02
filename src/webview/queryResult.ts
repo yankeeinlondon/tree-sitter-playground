@@ -8,7 +8,7 @@ const resultDecorativerCache: Map<number, ResultDecorativer> = new Map();
  * 清除查询结果的样式
  */
 function clear() {
-    resultDecorativerCache.forEach((value) => value.remove())
+    resultDecorativerCache.forEach((value) => value.remove());
     resultDecorativerCache.clear();
     NAMES = [];
 }
@@ -45,7 +45,7 @@ class ResultDecorativer {
             this.topLineDom = this.syntaxNodeDom.querySelector<HTMLElement>('.node-str');
             // 语法树节点类型文本DOM，要设置字体颜色
             this.textDom = this.syntaxNodeDom.querySelector<HTMLElement>('.node-link');
-            const deep = this.syntaxNodeDom.getAttribute('data-deep')
+            const deep = this.syntaxNodeDom.getAttribute('data-deep');
             if (deep) {
                 // 获取缩进线的DOM
                 this.identLineDoms = document.querySelectorAll<HTMLElement>(`.row.sp-${this.nodeId} .indent.d-${deep}`);
@@ -74,7 +74,7 @@ class ResultDecorativer {
             dom.style.borderLeft = '';
         });
         this.captureNameDom && this.captureNameDom.remove();
-        setTimeout(() => { }, 0)
+        setTimeout(() => { }, 0);
     }
 
     /**
@@ -97,7 +97,7 @@ class ResultDecorativer {
         this.setNodeTypeTextStyle();
         this.setIdentLineStyle();
         this.setCaptureNameDomStyle();
-        setTimeout(() => { }, 0)
+        setTimeout(() => { }, 0);
     }
 
     /**
@@ -151,7 +151,7 @@ class ResultDecorativer {
                 }
                 this.identLineDoms && this.identLineDoms.forEach(dom => {
                     dom.style.borderLeft = `1px solid ${this.color}`;
-                })
+                });
                 if (this.state?.enableNodeMapping) {
                     this.textDom && this.textDom.click();
                 }
@@ -165,8 +165,8 @@ class ResultDecorativer {
                 }
                 this.identLineDoms && this.identLineDoms.forEach(dom => {
                     dom.style.borderLeft = `1px inset ${this.color}`;
-                })
-            })
+                });
+            });
             this.captureNameDom.addEventListener('click', () => {
                 this.textDom && this.textDom.click();
             });

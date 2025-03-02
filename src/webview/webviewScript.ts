@@ -61,7 +61,6 @@ function listenWebviewMessage(queryEditor: QueryEditor) {
                         item.classList.remove("node-link-selected");
                     });
                     element.classList.add("node-link-selected");
-                    element.click();
                     element.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
                 break;
@@ -157,7 +156,7 @@ function listenHtmlElementEvent(queryEditor: QueryEditor) {
  * @param state 视图状态数据
  */
 function refreshWebview(state: any, queryEditor: QueryEditor) {
-    Object.assign(VIEW_STATE, state)
+    Object.assign(VIEW_STATE, state);
     VS_API.setState(VIEW_STATE);
     showAnonymousCheckbox!.checked = VIEW_STATE.showAnonymousNodes;
     enableQueryCheckbox.checked = VIEW_STATE.enableQuery;
@@ -219,7 +218,7 @@ function treeNodeToHtml(nodes: MiniNode[]): any {
 
         // 根据节点的深度，计算出ID路径，并转换为锚点类选择器
         const diff = level - prevLevel;
-        if (diff == 0) {
+        if (diff === 0) {
             idPath = idPath.slice(0, level);
         } else if (diff < 0) {
             idPath = idPath.slice(0, diff - 1);
@@ -278,14 +277,14 @@ function getThemeInfo(): QueryEditorTheme {
         } else {
             throw new Error('Invalid RGB string format');
         }
-    }
+    };
     return {
         themeKind,
         // colors 的属性key请参考monaco官方文档
         colors: {
             'editor.background': rgbStringToHex(themeStyle.backgroundColor)
         }
-    }
+    };
 }
 
 /**
@@ -296,7 +295,7 @@ function initMonacoEditor() {
     const editor = new QueryEditor(editorElement!, {
         defaultValue: '',
         themeConfig: getThemeInfo()
-    })
+    });
     return editor.create();
 }
 
