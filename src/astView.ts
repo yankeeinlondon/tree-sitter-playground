@@ -226,6 +226,7 @@ class AstWebview {
             // 移除选择样式
             vscode.window.activeTextEditor?.setDecorations(selectedDecorationType, []);
             ASTWebviewManager.deleteCache(this.doc.uri);
+            this.editorDecorationer.clear();
         });
     }
 
