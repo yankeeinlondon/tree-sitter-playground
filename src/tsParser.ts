@@ -136,6 +136,7 @@ export class MiniNode {
 }
 export interface MiniCapture{
     pattern: number;
+    color: string;
     name: string;
     node: MiniNode;
 }

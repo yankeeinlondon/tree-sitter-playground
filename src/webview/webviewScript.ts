@@ -306,10 +306,4 @@ function initMonacoEditor() {
     const queryEditor = initMonacoEditor();
     listenWebviewMessage(queryEditor);
     listenHtmlElementEvent(queryEditor);
-    queryEditor.setValue(`(
-  (import_declaration
-    (import_spec path: (interpreted_string_literal) @_import_c))
-  (#eq? @_import_c "\"C\"")
-  (#match? @injection.content "^//"))
-`);
 })();

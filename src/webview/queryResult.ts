@@ -1,31 +1,15 @@
 import { AstWebviewState } from "../astView";
 import { MiniCapture } from "../tsParser";
-const COLORS: string[] = ['#80cbc4', '#ffb757', '#e0b8ff', '#ff9492', '#56d364', '#a5d6ff', '#ffa198', '#d2a8ff', '#ff7b72', '#7ee787', '#ffa657', '#9ca3af', '#79c0ff'];
-let NAMES: string[] = [];
-const resultDecorativerCache: Map<number, ResultDecorativer> = new Map();
 
+const resultDecorativerCache: Map<number, ResultDecorativer> = new Map();
 /**
  * 清除查询结果的样式
  */
-function clear() {
+function clearColorCache() {
     resultDecorativerCache.forEach((value) => value.remove());
     resultDecorativerCache.clear();
-    NAMES = [];
 }
 
-/**
- * 根据捕获的名称计算颜色的索引
- * @param name 捕获节点的名称
- * @returns 
- */
-function getColor(name: string): string {
-    let index = NAMES.indexOf(name);
-    if (index === -1) {
-        NAMES.push(name);
-        index = NAMES.length - 1;
-    }
-    return COLORS[index % 13];
-}
 
 /**
  * 语法树查询结果的装饰器
@@ -167,7 +151,8 @@ class ResultDecorativer {
                     dom.style.borderLeft = `1px inset ${this.color}`;
                 });
             });
-            this.captureNameDom.addEventListener('click', () => {
+            this.captureNameDom.addEventListener('click', (event) => {
+                event.stopPropagation();
                 this.textDom && this.textDom.click();
             });
         }
@@ -179,10 +164,8 @@ class ResultDecorativer {
  * @param captures 捕获的查询结果
  */
 export function decorativeResults(captures: MiniCapture[] = [], state: AstWebviewState) {
-    clear();
-    for (const { name, node } of captures) {
-        // 获取要渲染的颜色
-        const color = getColor(name);
+    clearColorCache();
+    for (const { name, node, color } of captures) {
         let resultDecorativer = resultDecorativerCache.get(node.id);
         if (!resultDecorativer) {
             resultDecorativer = new ResultDecorativer(node.id, name, color, state);

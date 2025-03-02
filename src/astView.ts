@@ -1,16 +1,14 @@
 import path from "path";
 import * as vscode from "vscode";
 import Parser, { Tree } from "web-tree-sitter";
+import { Colors } from "./colors";
+import { EditorDecorationer, selectedDecorationType } from "./editorDecorations";
 import { EditRange, editTree, getParser, handlerSyntaxNodeByRecursion, MiniCapture, MiniNode } from "./tsParser";
 
 // 日志输出
 const logOutput = vscode.window.createOutputChannel("Tree-Sitter-Viewer", { log: true });
 
-// 编辑器内的选中装饰类型，即编辑器内字符选中后的样式
-const astWebviewSelectedDecorationType = vscode.window.createTextEditorDecorationType({
-    backgroundColor: "#125381",
-    borderRadius: "4px",
-});
+
 
 /**
  * webview状态数据类型
@@ -128,6 +126,7 @@ class AstWebview {
     private state!: AstWebviewState;
     private tsParser!: Parser;
     private astTree!: Tree;
+    private editorDecorationer!: EditorDecorationer;
     public get webviewPanel() {
         return this._webviewPanel;
     }
@@ -152,6 +151,15 @@ class AstWebview {
             // 刷新web页面
             this.refreshWebview();
         });
+
+        // 获取当前文档的编辑器
+        const editor = vscode.window.visibleTextEditors.find(
+            (editor) => editor.document.uri.toString() === this.doc.uri.toString()
+        );
+        if (editor) {
+            // 初始化编辑器装饰器
+            this.editorDecorationer = new EditorDecorationer(editor);
+        }
     }
 
     /**
@@ -216,7 +224,7 @@ class AstWebview {
             changeSelectionDispose.dispose();
 
             // 移除选择样式
-            vscode.window.activeTextEditor?.setDecorations(astWebviewSelectedDecorationType, []);
+            vscode.window.activeTextEditor?.setDecorations(selectedDecorationType, []);
             ASTWebviewManager.deleteCache(this.doc.uri);
         });
     }
@@ -238,33 +246,14 @@ class AstWebview {
             case "selectEditorText":
                 const { startIndex, endIndex, isClick } = value;
                 if (isClick || (this.state.enableNodeMapping && this._webviewPanel.active)) {
-                    // 获取当前活动的文本编辑器
-                    const editor = vscode.window.visibleTextEditors.find(
-                        (editor) => editor.document.uri.toString() === this.doc.uri.toString()
-                    );
-
-                    if (editor) {
-                        const selectRange: vscode.Range[] = [];
-                        editor.setDecorations(astWebviewSelectedDecorationType, selectRange);
-                        if (startIndex && endIndex) {
-                            const start = this.doc.positionAt(startIndex);
-                            const end = this.doc.positionAt(endIndex);
-                            // 设置编辑器的选中内容
-                            editor.selection = new vscode.Selection(start, end);
-
-                            selectRange.push(new vscode.Range(start, end));
-                            editor.setDecorations(astWebviewSelectedDecorationType, selectRange);
-                            // 滚动到选中的内容
-                            editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
-                        }
-                    }
+                    this.editorDecorationer.renderSelectRange(startIndex, endIndex);
                 }
                 break;
             case "enableQuery":
                 this.state.enableQuery = value;
                 if (this.state.enableQuery && this.state.queryText) {
                     this.querySyntaxNode(this.state.queryText);
-                }else{
+                } else {
                     this.querySyntaxNode('');
                 }
                 break;
@@ -323,7 +312,7 @@ class AstWebview {
         const eventDoc = textEditor.document;
         const activeEditor = vscode.window.activeTextEditor;
         if (kind === vscode.TextEditorSelectionChangeKind.Mouse) {
-            textEditor.setDecorations(astWebviewSelectedDecorationType, []);
+            textEditor.setDecorations(selectedDecorationType, []);
         }
         if (
             !this._webviewPanel.active &&
@@ -360,19 +349,25 @@ class AstWebview {
      * @param queryText 查询语句
      */
     querySyntaxNode(queryText: string) {
+        this.editorDecorationer.clear();
+        Colors.reset();
         try {
             let flatCaptures: MiniCapture[] = [];
             if (queryText && this.state.enableQuery) {
                 const query = this.tsParser.getLanguage().query(queryText);
                 const matches = query.matches(this.astTree.rootNode);
-                for(const {pattern, captures} of matches){
-                    for(const {name, node} of captures){
-                        flatCaptures.push({ pattern, name, node: new MiniNode(node) });
+                for (const { pattern, captures } of matches) {
+                    for (const { name, node } of captures) {
+                        const miniNode = new MiniNode(node);
+                        const color = Colors.getColorForCaptureName(name);
+                        flatCaptures.push({ pattern, name, node: miniNode, color });
+                        this.editorDecorationer.renderCaptureRange(miniNode, color);
                     }
                 }
-                
+
             }
             this._webviewPanel.webview.postMessage({ command: 'queryDone', data: flatCaptures });
+
         } catch (error: any) {
             const data = Object.assign({}, error);
             // 必须进行一次显示赋值
