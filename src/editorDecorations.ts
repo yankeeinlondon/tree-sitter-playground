@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { MiniNode } from "./tsParser";
 
 /**
- * 装饰类型
+ * `DecorationType` class definition
  */
 class DecorationType {
     private _decorationType: vscode.TextEditorDecorationType;
@@ -24,7 +24,7 @@ class DecorationType {
     }
 
     /**
-     * 渲染指定的范围
+     * Renders the specified range
      * @param range 
      */
     render(range: vscode.Range) {
@@ -33,7 +33,7 @@ class DecorationType {
     }
 
     /**
-     * 清理所有的装饰
+     * Clean up all the decorations
      */
     clear() {
         this._ranges = [];
@@ -41,7 +41,10 @@ class DecorationType {
     }
 }
 
-// 编辑器内的选中装饰类型，即编辑器内字符选中后的样式
+/** 
+ * The selected decoration type in the editor, that is, the style of the selected 
+ * character in the editor
+ */
 export const selectedDecorationType = vscode.window.createTextEditorDecorationType({
     backgroundColor: "#125381 !important",
     borderRadius: "4px",
@@ -50,10 +53,11 @@ export const selectedDecorationType = vscode.window.createTextEditorDecorationTy
     border: "1px solid #ea00b1",
 });
 
-// 编辑器内的颜色装饰类型
+/** Color decoration type in editor */
 const editorDecorationType: Map<string, DecorationType> = new Map();
+
 /**
- * 获取颜色对应的装饰类型
+ * Get the decoration type corresponding to the color
  * @param color 
  * @param editor 
  * @returns 
@@ -69,7 +73,7 @@ export function getDecorationTypeForColor(color: string, editor: vscode.TextEdit
 
 
 /**
- * 编辑器装饰器
+ * Editor Decorator
  */
 export class EditorDecorationer {
     private doc: vscode.TextDocument;
@@ -78,7 +82,8 @@ export class EditorDecorationer {
     }
 
     /**
-     * 渲染选中的范围
+     * Render the selected range
+     * 
      * @param startIndex 
      * @param endIndex 
      */
@@ -88,14 +93,20 @@ export class EditorDecorationer {
             const start = this.doc.positionAt(startIndex);
             const end = this.doc.positionAt(endIndex);
             
-            this.editor.setDecorations(selectedDecorationType, [new vscode.Range(start, end)]);
-            // 滚动到选中的内容
-            this.editor.revealRange(new vscode.Selection(start, end), vscode.TextEditorRevealType.InCenter);
+            this.editor.setDecorations(
+                selectedDecorationType, 
+                [new vscode.Range(start, end)]
+            );
+            // Scroll to selected content
+            this.editor.revealRange(
+                new vscode.Selection(start, end), vscode.TextEditorRevealType.InCenter
+            );
         }
     }
 
     /**
-     * 渲染捕获节点的范围 
+     * Rendering capture node range
+     * 
      * @param node 
      * @param color 
      */
@@ -107,7 +118,7 @@ export class EditorDecorationer {
     }
 
     /**
-     * 清理所有的装饰
+     * Clean up all the decorations
      */
     clear() {
         editorDecorationType.forEach((value) => value.clear());

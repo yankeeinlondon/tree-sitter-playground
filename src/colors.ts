@@ -1,11 +1,12 @@
-const COLORS: string[] = ['#80cbc4', '#ffb757', '#e0b8ff', '#ff9492', '#56d364', '#a5d6ff', '#ffa198', '#d2a8ff', '#ff7b72', '#7ee787', '#ffa657', '#9ca3af', '#79c0ff'];
+const COLORS = ['#80cbc4', '#ffb757', '#e0b8ff', '#ff9492', '#56d364', '#a5d6ff', '#ffa198', '#d2a8ff', '#ff7b72', '#7ee787', '#ffa657', '#9ca3af', '#79c0ff'] as const satisfies string[];
 let NAMES: string[] = [];
 
 
 export class Colors {
     /**
-     * 根据捕获的名称计算颜色的索引
-     * @param name 捕获节点的名称
+     * Calculate the index of the color based on the captured name
+     * 
+     * @param name Capture the name of the node
      * @returns 
      */
     static getColorForCaptureName(name: string): string {
@@ -18,7 +19,7 @@ export class Colors {
     }
 
     /**
-     * 重置颜色样式
+     * Reset Color Style
      */
     static reset() {
         NAMES = [];

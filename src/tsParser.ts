@@ -1,41 +1,49 @@
 import fs from "fs";
 import path from "path";
+import { SyntaxNode } from "tree-sitter";
 import * as vscode from "vscode";
-import Parser, { Edit, Point, SyntaxNode, TreeCursor } from "web-tree-sitter";
+import { Parser, Edit, Point, TreeCursor } from "web-tree-sitter";
 
-// wasm文件目录
+
+// import Parser, { } from "tree-sitter-typescript";
+
+// wasm file directory
 const WASM_DIR = path.join(__dirname, 'tree-sitter');
-// 语言对应的Parser实例
+// Parser instance corresponding to the language
 const TS_PARSER = new Map<string, Parser>();
 
 /**
- * Tree-sitter 查询语句错误
+ * Tree-sitter query error
  */
 export interface QueryError extends RangeError{
-    // 错误所在字符索引
+    // The character index where the error occurs
     index: number;
-    // 字符长度
+    // Character length
     length: number;
 }
 
 /**
- * 表示代码编辑范围，用于更新语法树
+ * Indicates the code editing scope, used to update the syntax tree
  */
 export class EditRange implements Edit {
     startIndex: number;
     oldEndIndex: number;
     newEndIndex: number;
 
-    startPosition: Parser.Point;
-    oldEndPosition: Parser.Point;
-    newEndPosition: Parser.Point;
+    startPosition: Point;
+    oldEndPosition: Point;
+    newEndPosition: Point;
 
     /**
-     * 构造函数，根据VSCode的文本变化事件创建编辑范围
-     * @param editChangeEvent VSCode文本变化事件
-     * @param document VSCode文档对象
+     * Constructor, create editing scope according to VSCode text change event
+     * 
+     * @param editChangeEvent VSCode text change event
+     * @param document VSCode Document Object
      */
-    constructor(editChangeEvent: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument) {
+    constructor(
+        editChangeEvent: vscode.TextDocumentContentChangeEvent, 
+        document: vscode.TextDocument
+    ) {
         const { range, rangeOffset, rangeLength, text } = editChangeEvent;
 
         this.startIndex = rangeOffset;
@@ -48,21 +56,23 @@ export class EditRange implements Edit {
     }
 
     /**
-     * 将VSCode的Position转换为Tree-sitter的Point
-     * @param position VSCode的Position对象
-     * @returns Tree-sitter的Point对象
+     * Convert VSCode's Position to Tree-sitter's Point
+     * 
+     * @param position VSCode's Position object
+     * @returns Tree-sitter Point object
      */
-    static asTSPoint(position: vscode.Position): Parser.Point {
+    static asTSPoint(position: vscode.Position): Point {
         const { line, character } = position;
         return { row: line, column: character };
     }
 
     /**
-     * 将Tree-sitter的Point转换为VSCode的Position
-     * @param Position Tree-sitter的Point对象
-     * @returns VSCode的Position对象
+     * Convert Tree-sitter's Point to VSCode's Position
+     * 
+     * @param Position Tree-sitter Point object
+     * @returns VSCode's Position object
      */
-    static asVsPosition(point: Parser.Point):vscode.Position{
+    static asVsPosition(point: Point):vscode.Position{
         const {row, column} = point;
 
         return new vscode.Position(row, column);
@@ -70,7 +80,8 @@ export class EditRange implements Edit {
 }
 
 /**
- * 表示语法树的简化节点，包含节点的基本信息
+ * Represents a simplified node of the syntax tree, containing 
+ * basic information about the node
  */
 export class MiniNode {
     id: number;
@@ -102,9 +113,9 @@ export class MiniNode {
     fieldName?: string;
 
     /**
-     * 构造函数，根据Tree-sitter的语法节点创建简化节点
-     * @param node Tree-sitter的语法节点
-     * @param walk Tree-sitter的游标对象
+     * Constructor, creates a simplified node based on the syntax node of Tree-sitter
+     * @param node Tree-sitter syntax nodes
+     * @param walk Tree-sitter cursor object
      */
     constructor(node: SyntaxNode, walk?: TreeCursor) {
         this.id = node.id;
@@ -141,9 +152,10 @@ export interface MiniCapture{
     node: MiniNode;
 }
 /**
- * 递归处理语法树节点
- * @param node 语法树节点
- * @param handler 节点处理函数
+ * Recursively process syntax tree nodes
+ * 
+ * @param node Syntax tree nodes
+ * @param handler callback function
  */
 export async function handlerSyntaxNodeByRecursion(
     node: SyntaxNode,
@@ -174,11 +186,12 @@ export async function handlerSyntaxNodeByRecursion(
 }
 
 /**
- * 编辑语法树
- * @param tree 语法树
- * @param editChangeEvent 文本变化事件
- * @param document VSCode文档对象
- * @returns 更新后的语法树
+ * Editing Syntax Tree
+ * 
+ * @param tree Syntax Tree
+ * @param editChangeEvent Text change event
+ * @param document VSCode Document Object
+ * @returns Updated syntax tree
  */
 export async function editTree(
     tree: Parser.Tree,
@@ -192,9 +205,10 @@ export async function editTree(
 }
 
 /**
- * 获取指定语言的Parser实例
- * @param language 语言
- * @returns Parser实例
+ * Get the Parser instance of the specified language
+ * 
+ * @param language language
+ * @returns language parser
  */
 export async function getParser(language: string) {
     let parser = TS_PARSER.get(language);
@@ -212,9 +226,10 @@ export async function getParser(language: string) {
 }
 
 /**
- * 初始化指定语言的Parser实例
- * @param language 语言
- * @returns Parser实例
+ * Initializes a Parser instance for the specified language
+ * 
+ * @param language language
+ * @returns language parser
  */
 async function initTSParser(language: string) {
     await Parser.init({locateFile: (pathName:string)=> path.join(WASM_DIR, pathName)});
@@ -227,27 +242,29 @@ async function initTSParser(language: string) {
 }
 
 /**
- * 检查是否存在指定语言的wasm文件，如果不存在则下载
+ * Check if there is a wasm file in the specified language, and download 
+ * it if it does not exist
+ * 
  * @param language 语言
- * @returns 错误信息，如果存在错误则返回错误信息，否则返回undefined
+ * @returns if there is an error, it returns the _error message_, otherwise it returns `undefined`
  */
 async function checkLanguageWasm(language: string): Promise<any> {
     const wasmPath = path.resolve(WASM_DIR, `${getWasmId(language)}.wasm`);
     if (!fs.existsSync(wasmPath)) {
-        // 下载wasm文件
         if (!fs.existsSync(WASM_DIR)) {
             fs.mkdirSync(WASM_DIR);
         }
-        // 下载wasm文件到wasm目录下
+        // Download the wasm file to the wasm directory
         return downloadWasmFile(language, wasmPath);
     }
 }
 
 /**
- * 下载指定语言的wasm文件到指定路径
- * @param language 语言
- * @param wasmPath wasm文件保存路径
- * @returns Promise对象，表示下载操作
+ * Download the wasm file of the specified language to the specified path
+ * 
+ * @param language language
+ * @param wasmPath WASM file save path
+ * @returns a promised which when resolved indicates the outcome of the operation
  */
 function downloadWasmFile(language: string, wasmPath: string): Promise<string | null> {
     return new Promise<string | null>((resolve, reject) => {
@@ -257,7 +274,7 @@ function downloadWasmFile(language: string, wasmPath: string): Promise<string | 
                 location: vscode.ProgressLocation.Notification,
             },
             async (progress, cancleToken) => {
-                // 使用fetch下载wasm文件
+                // Download wasm file using fetch
                 const wasmUrl = `https://tree-sitter.github.io/tree-sitter-${language}.wasm`;
                 try {
                     const response = await fetch(wasmUrl);
@@ -280,14 +297,16 @@ function downloadWasmFile(language: string, wasmPath: string): Promise<string | 
 }
 
 /**
- * 获取符合tree-sitter的wasm文件名
- * @param language 语言标识符
- * @returns wasm文件名
+ * Get the WASM file name that complies with tree-sitter
+ * 
+ * @param language Language Identifier
+ * @returns WASM file name
  */
 function getWasmId(language: string): string{
     let wasmId = `tree-sitter-${language}`;
 
-    // VS Code 中对于 C# 语言ID 与tree-sitter 的命名风格不一致，这里做矫正
+    // The naming style of C# language ID in VS Code is inconsistent 
+    // with that of tree-sitter. Here is a correction
     if (language === "csharp") {
         wasmId = "tree-sitter-c_sharp";
     }

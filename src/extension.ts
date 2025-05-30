@@ -2,24 +2,23 @@ import * as vscode from "vscode";
 import { ASTWebviewManager } from "./astView";
 
 /**
- * 扩展插件的入口函数，激活扩展时将调用此方法
- * @param context 扩展插件的上下文
+ * The entry function of the extension plug-in. This method 
+ * will be called when the extension is activated.
+ * @param context Extension context
  */
 export function activate(context: vscode.ExtensionContext) {
-    // 初始化Ast webview管理器
+    // Initialize Ast webview manager
     ASTWebviewManager.initManager(context);
-    // 注册查看语法树命令
+    // Register to view the syntax tree command
     const disposable = vscode.commands.registerCommand("tree-sitter-viewer.view-syntax-tree", viewSyntaxTreeCommand);
     context.subscriptions.push(disposable);
 }
 
-// 停用扩展时将调用此方法
+/** This method will be called when the extension is disabled */
 export function deactivate() { }
 
 /**
- * 查看语法树命令处理函数
- * @param args
- * @returns
+ * View syntax tree command processing function
  */
 async function viewSyntaxTreeCommand(uri: vscode.Uri) {
     let resource: vscode.Uri = uri, doc: vscode.TextDocument | undefined;
