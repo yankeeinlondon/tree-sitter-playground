@@ -25,15 +25,13 @@
         "url": "https://github.com/yankeeinlondon"
     },
     "publisher": "yankeinlondon",
-    "main": "./dist/index.cjs",
-    "module": "./dist/index.js",
+    "main": "./dist/extension.cjs",
     "scripts": {
         "vscode:prepublish": "npm run package",
         "build": "tsdown",
         "watch": "tsdown --watch",
         "package": "tsdown --minify",
         "release": "",
-        "pretest": "npm run compile-tests && npm run build && npm run lint",
         "test": "run-s test:prep test:vscode",
         "test:prep": "pnpm build",
         "test:vscode": "vscode-test",
@@ -92,8 +90,10 @@
         "web-tree-sitter": "^0.25.5"
     },
     "devDependencies": {
+        "@antfu/eslint-config": "^4.13.2",
+        "@type-challenges/utils": "^0.1.1",
         "@types/mocha": "^10.0.10",
-        "@types/node": "^22.15.29",
+        "@types/node": "22",
         "@types/vscode": "^1.100.0",
         "@typescript-eslint/eslint-plugin": "^8.33.0",
         "@typescript-eslint/parser": "^8.33.0",
@@ -102,6 +102,9 @@
         "@vscode/vsce": "^3.4.2",
         "bumpp": "^10.1.1",
         "eslint": "^9.28.0",
+        "eslint-plugin-format": "^1.0.1",
+        "husky": "^9.1.7",
+        "jiti": "^2.4.2",
         "node-gyp": "^11.2.0",
         "npm-run-all": "^4.1.5",
         "tree-sitter-bash": "^0.23.3",
@@ -124,11 +127,11 @@
         "tree-sitter-scala": "^0.23.4",
         "tree-sitter-typescript": "^0.23.2",
         "tsdown": "^0.12.5",
-        "typescript": "^5.8.3"
+        "typescript": "^5.8.3",
+        "vitest": "^3.1.4"
     },
     "engines": {
         "vscode": "^1.100.0"
     },
     "icon": "./resources/icons/tree.png"
 }
-

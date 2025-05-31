@@ -1,7 +1,14 @@
-import { AstWebviewState } from "../astView";
-import { MiniCapture, MiniNode, QueryError } from "../tsParser";
+import { 
+    MiniNode, 
+    decorativeResults
+} from "~/shared";
 import { QueryEditor, QueryEditorTheme } from "./monaco";
-import { decorativeResults } from "./queryResult";
+import { 
+    AstWebviewState,
+    MiniCapture, 
+    QueryError 
+} from "~/types";
+
 
 const resizeElement = document.getElementById("row-resize") as HTMLElement;
 const rowContianer = document.getElementById("output-container") as HTMLElement;

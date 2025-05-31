@@ -1,11 +1,12 @@
 import * as monaco from 'monaco-editor';
-import { QueryError } from '../tsParser';
+import { QueryError } from '~/types';
+
 
 const LANGUAGE_ID = 'tree-sitter-query';
 
 // @ts-ignore
 self.MonacoEnvironment = {
-    getWorkerUrl: function (moduleId: any, label: string) {
+    getWorkerUrl: function (_moduleId: any, _label: string) {
         // @ts-ignore
         return editorWorkJsUri;
     }
@@ -24,8 +25,12 @@ monaco.languages.setLanguageConfiguration(LANGUAGE_ID, {
         { open: "'", close: "'", notIn: ["string"] }
     ],
 });
-const keywords = ['eq?', 'not-eq?', "any-eq?", "any-of?", 'match?', 'is?', 'is-not?', 'set!', 'select-adjacent!', 'strip!'];
-// 定义语法高亮
+
+const keywords = [
+    'eq?', 'not-eq?', "any-eq?", "any-of?", 'match?', 'is?', 'is-not?', 'set!', 'select-adjacent!', 'strip!'
+];
+
+// Defining syntax highlighting
 monaco.languages.setMonarchTokensProvider(LANGUAGE_ID, {
     tokenizer: {
         root: [
@@ -142,7 +147,8 @@ export class QueryEditor {
 
     /**
      * Rendering Editor Example
-     * @returns Editor Instance
+     * 
+     * @returns `Editor` instance
      */
     public create() {
         if (!this.editor) {
@@ -154,20 +160,23 @@ export class QueryEditor {
 
     /**
      * Listener when the text in the editor changes
+     * 
      * @param changeEvent The event handler called when the text in the editor changes
      */
     public onValueChange(changeEvent: (value: string) => void) {
-        // TODO should return `event.changes`
         this.editor.onDidChangeModelContent((event) => {
             changeEvent(this.editor.getValue());
 
             this.editor.updateOptions({ hover: { enabled: false } });
             setTimeout(() => this.editor.updateOptions({ hover: { enabled: true } }), 100);
+
+            return event.changes;
         });
     }
 
     /**
      * Set the editor text content
+     * 
      * @param value 
      */
     public setValue(value: string) {
@@ -194,6 +203,7 @@ export class QueryEditor {
 
     /**
      * Set the editor's theme color
+     * 
      * @param themeConfig Theme Configuration
      */
     private setTheme(themeConfig: QueryEditorTheme) {

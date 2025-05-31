@@ -1,16 +1,20 @@
 import * as vscode from "vscode";
-import { ASTWebviewManager } from "./astView";
+import { ASTWebviewManager } from "~/extension/AstWebviewManager";
 
 /**
  * The entry function of the extension plug-in. This method 
  * will be called when the extension is activated.
+ * 
  * @param context Extension context
  */
 export function activate(context: vscode.ExtensionContext) {
     // Initialize Ast webview manager
     ASTWebviewManager.initManager(context);
     // Register to view the syntax tree command
-    const disposable = vscode.commands.registerCommand("tree-sitter-viewer.view-syntax-tree", viewSyntaxTreeCommand);
+    const disposable = vscode.commands.registerCommand(
+        "tree-sitter-playground.view-syntax-tree", 
+        viewSyntaxTreeCommand
+    );
     context.subscriptions.push(disposable);
 }
 
@@ -23,9 +27,15 @@ export function deactivate() { }
 async function viewSyntaxTreeCommand(uri: vscode.Uri) {
     let resource: vscode.Uri = uri, doc: vscode.TextDocument | undefined;
     if (resource) {
-        const editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor;
-        if (!editor || (resource.toString() !== editor.document.uri.toString())) {
-            await vscode.commands.executeCommand('vscode.open', resource);
+        const editor = vscode.window.activeTextEditor;
+        if (
+            !editor 
+            || (resource.toString() !== editor.document.uri.toString())
+        ) {
+            await vscode.commands.executeCommand(
+                'vscode.open', 
+                resource
+            );
         }
         doc = vscode.window.activeTextEditor?.document;
     }

@@ -1,138 +1,17 @@
-import path from "path";
 import * as vscode from "vscode";
-import  { Tree, Parser, Point } from "web-tree-sitter";
-import { Colors } from "./colors";
-import { EditorDecorationer, selectedDecorationType } from "./editorDecorations";
-import { 
-    EditRange, 
-    editTree, 
-    getParser, 
-    handlerSyntaxNodeByRecursion, 
-    MiniCapture, 
-    MiniNode 
-} from "./tsParser";
-
-/** Log Output */
-const logOutput = vscode.window.createOutputChannel("Tree-Sitter-Viewer", { log: true });
-
-
-/**
- * WebView state data type
- */
-export interface AstWebviewState {
-    /** The URI address of the document */
-    docUri: string;
-    /** Flattened array of syntax tree nodes */
-    nodes: MiniNode[];
-    /** Whether to enable query */
-    enableQuery: boolean;
-    /** Cached query statements */
-    queryText: string;
-    /** Whether to display anonymous nodes */
-    showAnonymousNodes: boolean;
-    /** Whether to enable node mapping */
-    enableNodeMapping: boolean;
-    /** Whether to output logs */
-    logOutput: boolean;
-}
-
-/**
- * Serialized Abstract Syntax Tree WebView
- */
-interface SerializeAstWebview {
-    /** Serialized webview panel */
-    webviewPanel: vscode.WebviewPanel;
-    /** Serialized state data */
-    state: AstWebviewState;
-}
-
-/**
- * `ASTWebviewManager` class, used to manage the creation and restoration 
- * of the syntax tree Webview.
- */
-export class ASTWebviewManager {
-    private static _extensionContext: vscode.ExtensionContext;
-    private static _cache = new Map<string, AstWebview>();
-
-    /**
-     * Get the extension context
-     * 
-     * @returns {vscode.ExtensionContext} Extended context
-     */
-    public static get extensionContext(): vscode.ExtensionContext {
-        return this._extensionContext;
-    }
-
-    /**
-     * Initialization Manager
-     * 
-     * @param {vscode.ExtensionContext} extensionContext Extended context
-     */
-    static initManager(extensionContext: vscode.ExtensionContext) {
-        if (this._extensionContext) {
-            console.error(`ASTWebviewManager has been initialized successfully.`);
-            return;
-        }
-        this._extensionContext = extensionContext;
-        // Register a web view serializer
-        vscode.window.registerWebviewPanelSerializer(
-            AstWebview.viewType, 
-            new AstWebviewSerializer()
-        );
-    }
-
-    /**
-     * Create a web view of a syntax tree
-     * 
-     * @param {vscode.TextDocument} doc documents opened by vscode
-     * @param {SerializeAstWebview} serializeWebview optional, serialized webview
-     */
-    static async createAstWebview(doc: vscode.TextDocument, serializeWebview?: SerializeAstWebview) {
-        let astWebview = this._cache.get(doc.uri.toString());
-        if (astWebview) {
-            astWebview.webviewPanel.reveal();
-            return;
-        }
-        astWebview = new AstWebview(doc, serializeWebview);
-        this._cache.set(doc.uri.toString(), astWebview);
-    }
-
-    /**
-     * Deletes the cache for the specified URI.
-     *
-     * @param uri - The URI whose cache is to be deleted.
-     */
-    static deleteCache(uri: vscode.Uri) {
-        this._cache.delete(uri.toString());
-    }
-}
-
-/**
- * `AstWebviewSerializer` class, used to serialize and deserialize Webview
- */
-export class AstWebviewSerializer implements vscode.WebviewPanelSerializer<AstWebviewState> {
-    /**
-     * Deserialize Webview
-     * @param {vscode.WebviewPanel} webviewPanel Webview 面板
-     * @param {any} state 在 Webview 中持久化的状态
-     */
-    async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: AstWebviewState) {
-        //Restore the content of the Webview, making sure we preserve the passed in 
-        // `webviewPanel` and restore any event listeners we need
-        try {
-            const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(state.docUri));
-            ASTWebviewManager.createAstWebview(doc, { webviewPanel, state });
-        } catch (error) {
-            console.error(error);
-        }
-    }
-}
+import { Parser, Tree } from "web-tree-sitter";
+import { AstWebviewState } from "~/types";
+import { EditorDecorator } from "./EditorDectorator";
+import { SerializeAstWebview } from "./SerializeAstWebview";
+import { ASTWebviewManager } from "./AstWebviewManager";
+import { logOutput, selectedDecorationType } from "./utils";
+import { getParser } from "./treeParser";
 
 /**
  * Syntax tree web view class
  */
-class AstWebview {
-    public static readonly viewType = "tree-sitter-viewer.ast-webview";
+export class AstWebview {
+    public static readonly viewType = "tree-sitter-playground.ast-webview";
     // Open code document
     private readonly doc: vscode.TextDocument;
     private _webviewPanel!: vscode.WebviewPanel;
@@ -140,7 +19,7 @@ class AstWebview {
     private state!: AstWebviewState;
     private tsParser!: Parser;
     private astTree!: Tree;
-    private editorDecorationer!: EditorDecorationer;
+    private editorDecorationer!: EditorDecorator;
     public get webviewPanel() {
         return this._webviewPanel;
     }
@@ -151,7 +30,10 @@ class AstWebview {
      * @param {vscode.TextDocument} doc documents opened by vscode
      * @param {SerializeAstWebview} serializeAstWebview serialized Webview
      */
-    constructor(doc: vscode.TextDocument, serializeAstWebview?: SerializeAstWebview) {
+    constructor(
+        doc: vscode.TextDocument, 
+        serializeAstWebview?: SerializeAstWebview
+    ) {
         this.doc = doc;
 
         // Initialize webview panel
@@ -162,7 +44,9 @@ class AstWebview {
             this.tsParser = parser;
             this.astTree = this.tsParser.parse(doc.getText()) as Tree;
             // Setting up logging
-            this.setLogOutput();
+            this.setLogOutput((message: string, isLex: boolean) => {
+                logOutput.appendLine(`[${isLex ? 'LEX' : 'PARSE'}]: ${message}`);
+            });
             // Refresh the web page
             this.refreshWebview();
         });
@@ -174,7 +58,7 @@ class AstWebview {
 
         if (editor) {
             // Initialize the editor decorator
-            this.editorDecorationer = new EditorDecorationer(editor);
+            this.editorDecorationer = new EditorDecorator(editor);
         }
     }
 
@@ -283,7 +167,10 @@ class AstWebview {
                 break;
             case "logOutput":
                 this.state.logOutput = value;
-                this.setLogOutput();
+                this.setLogOutput((message: string, isLex: boolean) => {
+                    logOutput.appendLine(`[${isLex ? 'LEX' : 'PARSE'}]: ${message}`);
+                });
+                break;
             default:
         }
     }
@@ -293,7 +180,7 @@ class AstWebview {
      * 
      * @param {vscode.WebviewPanelOnDidChangeViewStateEvent} event View state change events
      */
-    private handleChangeViewStateEvent(event: vscode.WebviewPanelOnDidChangeViewStateEvent) {
+    private handleChangeViewStateEvent(_event: vscode.WebviewPanelOnDidChangeViewStateEvent) {
         if (!this.visible && this._webviewPanel.visible) {
             // Refresh the view content
             this.refreshWebview();
@@ -315,8 +202,8 @@ class AstWebview {
         const { document, contentChanges } = event;
         if (document.uri.toString() === this.doc.uri.toString()) {
             for (const change of contentChanges) {
-                // 增量更新语法树
-                this.astTree = await editTree(this.astTree, change, document);
+                // Incremental update syntax tree
+                this.astTree = await editTree(this.astTree, change, document) as Tree;
             }
             if (contentChanges.length > 0) {
                 await this.refreshWebview();
@@ -356,7 +243,7 @@ class AstWebview {
 
             // @ts-ignore
             if (startPosition && endPosition) {
-                const gotoNode = this.astTree.rootNode.descendantForPosition(startPosition, endPosition);
+                const gotoNode = this.astTree.rootNode.descendantForPosition(startPosition, endPosition) as Node;
                 this._webviewPanel.webview.postMessage({
                     command: "gotoNode",
                     data: JSON.stringify(new MiniNode(gotoNode)),
@@ -375,8 +262,9 @@ class AstWebview {
         Colors.reset();
         try {
             let flatCaptures: MiniCapture[] = [];
-            if (queryText && this.state.enableQuery) {
-                const query = this.tsParser.getLanguage().query(queryText);
+            if (queryText && this.state.enableQuery && this.tsParser.language) {
+                // web-tree-sitter >=0.25.0: use new Query(language, queryText)
+                const query = new Query(this.tsParser.language, queryText);
                 const matches = query.matches(this.astTree.rootNode);
                 for (const { pattern, captures } of matches) {
                     for (const { name, node } of captures) {
@@ -401,20 +289,9 @@ class AstWebview {
     /**
      * Setting up log output
      */
-    private setLogOutput() {
-        if (this.state.logOutput) {
-            this.tsParser.setLogger((message: string, params: { [param: string]: string }, type: any) => {
-                // Adapt different versions of log interfaces by judging type
-                if (type) {
-                    let paramsText = "";
-                    for (const key in params) {
-                        paramsText += `\t${key}: ${params[key]}`;
-                    }
-                    logOutput.appendLine(`[${type}]: ${message}. params:\n${paramsText}`);
-                } else {
-                    logOutput.appendLine(`${params ? "\t" : ""}${message}`);
-                }
-            });
+    private setLogOutput(callback?: (message: string, isLex: boolean) => void) {
+        if (this.state.logOutput && callback) {
+            this.tsParser.setLogger(callback);
             logOutput.show();
         } else {
             this.tsParser.setLogger(null);
@@ -466,7 +343,7 @@ class AstWebview {
         <html lang="en">
             <head>
                 <meta charset="UTF-8" />
-                <!-- 使用内容安全策略限制资源加载
+                <!-- Restricting resource loading using Content Security Policy
                 <meta
                     http-equiv="Content-Security-Policy"
                     content="default-src 'none'; img-src ${cspSource}; style-src ${cspSource}; script-src 'nonce-${nonce}';"/>
@@ -481,19 +358,19 @@ class AstWebview {
                 <div class="tool-container">
                     <div class="tool-item">
                         <input type="checkbox" id="log-output-checkbox" ></input>
-                        <label for="log-output-checkbox">显示日志</label>
+                        <label for="log-output-checkbox">Show logs</label>
                     </div>
                     <div class="tool-item">
                         <input type="checkbox" id="show-anonymous-checkbox" ></input>
-                        <label for="show-anonymous-checkbox">显示匿名节点</label>
+                        <label for="show-anonymous-checkbox">Show anonymous nodes</label>
                     </div>
                     <div class="tool-item">
                         <input type="checkbox" id="node-mapping-checkbox" ></input>
-                        <label for="node-mapping-checkbox">映射节点</label>
+                        <label for="node-mapping-checkbox">Mapping nodes</label>
                     </div>
-                    <div class="tool-item"> <!-- TODO 功能未实现，暂时不显示 -->
+                    <div class="tool-item"> <!-- TODO Function not implemented, not displayed for the time being -->
                         <input type="checkbox" id="enabled-query-checkbox"></input>
-                        <label for="enabled-query-checkbox">启用查询</label>
+                        <label for="enabled-query-checkbox">Enable query</label>
                     </div><br>
                 </div>
                 <div class="query-container" id="query-container" style="border-bottom: 1px solid #333333; height: 150px;">
@@ -512,16 +389,4 @@ class AstWebview {
         </html>
         `;
     }
-}
-
-/**
- * Generate a random string
- */
-function getNonce(): string {
-    let text = "";
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
 }

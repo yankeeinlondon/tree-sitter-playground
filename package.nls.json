@@ -1,5 +1,5 @@
 {
-    "displayName": "Tree-sitter Viewer",
-    "description": "Use `Tree-sitter` to parse and view the abstract syntax tree of your code in VS Code.",
+    "displayName": "tree-sitter Playground",
+    "description": "Use `tree-sitter` to parse and view the abstract syntax tree of your code in VS Code.",
     "command.viewSyntaxTree": "View Syntax Tree"
 }

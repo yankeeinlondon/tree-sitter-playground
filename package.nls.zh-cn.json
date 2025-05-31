@@ -1,5 +1,5 @@
 {
-    "displayName": "Tree-sitter Viewer",
+    "displayName": "Tree-sitter Playground",
     "description": "在 `VS Code` 中使用 `Tree-sitter` 解析和查看代码的抽象语法树。",
     "command.viewSyntaxTree": "查看语法树"
 }

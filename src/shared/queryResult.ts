@@ -1,5 +1,5 @@
-import { AstWebviewState } from "../astView";
-import { MiniCapture } from "../tsParser";
+import { AstWebviewState, MiniCapture } from "~/types";
+
 
 const resultDecorativerCache: Map<number, ResultDecorativer> = new Map();
 /**
@@ -9,7 +9,6 @@ function clearColorCache() {
     resultDecorativerCache.forEach((value) => value.remove());
     resultDecorativerCache.clear();
 }
-
 
 /**
  * Decorator for syntax tree query results
@@ -161,6 +160,7 @@ class ResultDecorativer {
 
 /**
  * Decorate the syntax tree query results to the syntax tree page
+ * 
  * @param captures Captured query results
  */
 export function decorativeResults(captures: MiniCapture[] = [], state: AstWebviewState) {
@@ -175,6 +175,4 @@ export function decorativeResults(captures: MiniCapture[] = [], state: AstWebvie
         }
         resultDecorativer.render();
     }
-
 }
-
